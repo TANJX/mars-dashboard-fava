@@ -4,7 +4,7 @@
 
 {% set data = extension.bootstrap() %}
 
-<div class="headerline">
+<div id="mars-dashboard">
   <h3>Mars Dashboard</h3>
   <table>
     <thead>
@@ -12,9 +12,13 @@
         <!-- All accounts -->
         <th>Date</th>
         {% for account in data.accounts %}
-        <th>{{ account }}</th>
-        <th>Transaction</th>
-        <th>Description</th>
+        {% set account_short = account.replace('Assets:Checking:', '').replace('Assets:Saving:', '') %}
+        {% set account_class = account.replace('Assets:', '').replace(':', '-').lower() %}
+        <th class="balance {{ account_class }}">
+          {{ account_short }}
+        </th>
+        <th class="transaction {{ account_class }}">Transaction</th>
+        <th class="description {{ account_class }}">Notes</th>
         {% endfor %}
       </tr>
     </thead>
@@ -24,9 +28,10 @@
       <tr>
         <td>{{ row.date }}</td>
         {% for account in data.accounts %}
-        <td>{{ row[account]["balance"] }}</td>
-        <td>{{ row[account]["transaction"] }}</td>
-        <td>{{ row[account]["description"] }}</td>
+        {% set account_class = account.replace('Assets:', '').replace(':', '-').lower() %}
+        <td class="balance {{ account_class }}">{{ row[account]["balance"] }}</td>
+        <td class="transaction {{ account_class }}">{{ row[account]["transaction"] }}</td>
+        <td class="description {{ account_class }}">{{ row[account]["description"] }}</td>
         {% endfor %}
       </tr>
       {% endfor %}

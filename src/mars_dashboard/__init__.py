@@ -14,6 +14,7 @@ from decimal import Decimal
 
 class MarsDashboard(FavaExtensionBase):
     report_title = "Mars Dashboard"
+    excluded_accounts = ["Assets:Checking:Future"]
     # has_js_module = True
 
     def get_ledger_duration(self, entries: List[Directive]):
@@ -58,22 +59,29 @@ class MarsDashboard(FavaExtensionBase):
             and isinstance(entry[2], SimpleCounterInventory)
         ]
 
-    def formatCurrency(number):
+    def formatCurrency(self, number, hideZero=False):
+        if hideZero and number == Decimal("0"):
+            return ""
         if number < 0:
             return f"-${abs(number.quantize(Decimal('1.00')))}"
         return f"${number.quantize(Decimal('1.00'))}"
 
     def bootstrap(self):
-        accounts = [
+        all_accounts = [
             k
             for k in self.ledger.accounts.keys()
-            if k.startswith("Assets:Checking") or k.startswith("Assets:Saving")
+            if (k.startswith("Assets:Checking") or k.startswith("Assets:Saving"))
+            and k not in self.excluded_accounts
         ]
 
-        # First get all account entries
-        account_entries = {
-            account: self.get_account_entries(account) for account in accounts
-        }
+        # First get all account entries and filter out accounts with no entries
+        account_entries = {}
+        for account in all_accounts:
+            entries = self.get_account_entries(account)
+            if entries:  # Only include accounts that have entries
+                account_entries[account] = entries
+        
+        accounts = sorted(account_entries.keys())
 
         # Then iterate through dates and look up balances
         rows = []
@@ -103,7 +111,7 @@ class MarsDashboard(FavaExtensionBase):
 
         # 0 - account, 1 - date, 2 - payee, 3 - position
         for entry in rrows:
-            if not entry:
+            if not entry or entry.account not in accounts:
                 continue
             # get index of the row by date difference
             index = int((entry.date - date_first).days) - 1
@@ -121,12 +129,10 @@ class MarsDashboard(FavaExtensionBase):
         # clean up the data, use $xxx.xx format for balance, and remove trailing ", " for description
         for row in rows:
             for account in accounts:
-                row[account][
-                    "balance"
-                ] = self.formatCurrency(row[account]['balance'])
-                row[account][
-                    "transaction"
-                ] = self.formatCurrency(row[account]['transaction'])
+                row[account]["balance"] = self.formatCurrency(row[account]["balance"])
+                row[account]["transaction"] = self.formatCurrency(
+                    row[account]["transaction"], hideZero=True
+                )
                 row[account]["description"] = ", ".join(row[account]["description"])
 
         return {

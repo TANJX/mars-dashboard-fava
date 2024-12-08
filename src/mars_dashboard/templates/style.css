@@ -1,0 +1,43 @@
+#mars-dashboard tbody {
+  text-align: right;
+}
+
+#mars-dashboard th.description,
+#mars-dashboard td.description {
+  width: 150px;
+  max-width: 150px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: left;
+}
+
+#mars-dashboard th {
+  color: #ffffff;
+  font-weight: bold;
+  background-color: #111;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+
+#mars-dashboard th.checking-amex {
+  background-color: #0000ff;
+}
+
+#mars-dashboard th.checking-bofa {
+  background-color: #cc0100;
+}
+
+#mars-dashboard th.saving-apple {
+  background-color: #434343;
+}
+
+#mars-dashboard th.saving-discover {
+  background-color: #ff6d01;
+}
+
+#mars-dashboard th.checking-citi {
+  background-color: #1255cc;
+}
