@@ -1,0 +1,15 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+          "name": "Run Fava",
+          "type": "debugpy",
+          "request": "launch",
+          "program": "/Users/marstanjx.mac/.virtualenvs/mars-universe-beancount-dbpg/bin/fava",
+          "args": ["/Users/marstanjx.mac/Development/mars-universe-beancount/journal/journal.beancount"],
+          "console": "integratedTerminal",
+          "justMyCode": false
+        },
+    ]
+  }
+  

@@ -1,0 +1,35 @@
+<style type="text/css">
+  {% include "style.css" %}
+</style>
+
+{% set data = extension.bootstrap() %}
+
+<div class="headerline">
+  <h3>Mars Dashboard</h3>
+  <table>
+    <thead>
+      <tr>
+        <!-- All accounts -->
+        <th>Date</th>
+        {% for account in data.accounts %}
+        <th>{{ account }}</th>
+        <th>Transaction</th>
+        <th>Description</th>
+        {% endfor %}
+      </tr>
+    </thead>
+    <!-- Balance of all accounts from first to last date -->
+    <tbody>
+      {% for row in data.rows %}
+      <tr>
+        <td>{{ row.date }}</td>
+        {% for account in data.accounts %}
+        <td>{{ row[account]["balance"] }}</td>
+        <td>{{ row[account]["transaction"] }}</td>
+        <td>{{ row[account]["description"] }}</td>
+        {% endfor %}
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>

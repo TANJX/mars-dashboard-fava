@@ -1,0 +1,17 @@
+[project]
+name = "mars-dashboard"
+dynamic = ["version"]
+description = "Mars Dashboards for Beancount in Fava"
+authors = [
+    { name = "TANJX", email = "marstanjx@gmail.com" }
+]
+dependencies = [
+    "fava>=1.26.1",
+    "beanquery>=0.1.dev0",
+]
+readme = "README.md"
+requires-python = ">= 3.8"
+license = {text = "MIT License"}
+
+[project.urls]
+Source = "https://github.com/TANJX/mars-dashboard"
