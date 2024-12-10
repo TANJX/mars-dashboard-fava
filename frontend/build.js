@@ -37,22 +37,25 @@ async function build() {
     onPageLoad() {
     },
     onExtensionPageLoad() {
-        // Only add script if it hasn't been added before
-        // if (!document.querySelector('script[data-mars-dashboard]')) {
-            const script = document.createElement('script');
-            script.setAttribute('data-mars-dashboard', 'true');
-            script.textContent = ${JSON.stringify(bundleContent)};
-            document.body.appendChild(script);
-        // }
+        const existingScript = document.querySelector('script[data-mars-dashboard]');
+        if (existingScript) {
+            existingScript.remove();
+        }
+        const script = document.createElement('script');
+        script.setAttribute('data-mars-dashboard', 'true');
+        script.textContent = ${JSON.stringify(bundleContent)};
+        document.body.appendChild(script);
     },
 };`;
 
         // Write to MarsDashboard.js
         const dashboardPath = path.resolve(__dirname, '../src/mars_dashboard/MarsDashboard.js');
+        console.log('Writing to MarsDashboard.js:', dashboardPath);
         fs.writeFileSync(dashboardPath, dashboardContent);
 
         // Write to style.css
         const stylePath = path.resolve(__dirname, '../src/mars_dashboard/templates/style.css');
+        console.log('Writing to style.css:', stylePath);
         fs.writeFileSync(stylePath, cssContent);
 
         console.log('Build completed and files injected into extension');

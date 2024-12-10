@@ -12,8 +12,8 @@ from fava.ext import FavaExtensionBase
 from fava.ext import extension_endpoint
 from fava.helpers import FavaAPIError
 from decimal import Decimal
-import urllib.parse
 from flask import request  # Add this import at the top
+
 
 class MarsDashboard(FavaExtensionBase):
     report_title = "Mars Dashboard"
@@ -22,10 +22,94 @@ class MarsDashboard(FavaExtensionBase):
 
     @extension_endpoint
     def get_data(self):
-        """Return some data with a GET endpoint."""
-        start_date = request.args.get('start_date')
-        end_date = request.args.get('end_date')
-        return self.bootstrap()
+
+        start_date = request.args.get("start_date")
+        end_date = request.args.get("end_date")
+
+        if not start_date or not end_date:
+            return {}
+
+        date_first = datetime.datetime.strptime(start_date, "%Y-%m-%d").date()
+        date_last = datetime.datetime.strptime(end_date, "%Y-%m-%d").date()
+
+        all_accounts = [
+            k
+            for k in self.ledger.accounts.keys()
+            if (k.startswith("Assets:Checking") or k.startswith("Assets:Saving"))
+            and k not in self.excluded_accounts
+        ]
+
+        # First get all account entries and filter out accounts with no entries
+        account_entries = {}
+        for account in all_accounts:
+            entries = self.get_account_entries(account)
+            if entries:  # Only include accounts that have entries
+                account_entries[account] = entries
+
+        accounts = sorted(account_entries.keys())
+
+        # Then iterate through dates and look up balances
+        rows = []
+
+        # date_first, date_last = self.get_ledger_duration(g.filtered.entries)
+        current_date = date_first
+
+        while current_date <= date_last:
+            row = {"date": current_date}
+            for account in accounts:
+                # Find the last entry before or on current_date
+                entries = account_entries[account]
+                row[account] = {
+                    "balance": Decimal("0"),
+                    "transaction": Decimal("0"),
+                    "description": set(),
+                }
+                for entry_date, amount in entries:
+                    if entry_date <= current_date:
+                        row[account]["balance"] = amount
+                    else:
+                        break
+            rows.append(row)
+            current_date += datetime.timedelta(days=1)
+
+        query = """SELECT account, date, payee, position WHERE account ~ "^Assets:Saving" OR account ~ "^Assets:Checking" """
+        rtypes, rrows = self.exec_query(query)
+
+        # 0 - account, 1 - date, 2 - payee, 3 - position
+        for entry in rrows:
+            if not entry or entry.account not in accounts:
+                continue
+            # get index of the row by date difference
+            index = int((entry.date - date_first).days) - 1
+            if index < 0 or index >= len(rows):
+                continue
+            row = rows[index]
+            row[entry.account]["transaction"] += entry.position.units.number
+            # get the first two words of payee
+            words = entry.payee.split()[:2] if entry.payee else [""]
+            if len(words) >= 2:
+                row[entry.account]["description"].add(f"{words[0]} {words[1]}")
+            elif len(words) == 1:
+                row[entry.account]["description"].add(f"{words[0]}")
+
+        # clean up the data, use $xxx.xx format for balance, and remove trailing ", " for description
+        for row in rows:
+            for account in accounts:
+                row[account]["balance"] = self.formatCurrency(row[account]["balance"])
+                row[account]["transaction"] = self.formatCurrency(
+                    row[account]["transaction"], hideZero=True
+                )
+                row[account]["description"] = ", ".join(row[account]["description"])
+
+        print(f"Fetched {len(rows)} rows for {start_date} to {end_date}")
+
+        return json.dumps(
+            {
+                "accounts": accounts,
+                "rows": rows,
+            },
+            default=str,
+        )
 
     def get_ledger_duration(self, entries: List[Directive]):
         date_first = None
@@ -77,81 +161,23 @@ class MarsDashboard(FavaExtensionBase):
         return f"${number.quantize(Decimal('1.00'))}"
 
     def bootstrap(self):
-        all_accounts = [
-            k
-            for k in self.ledger.accounts.keys()
-            if (k.startswith("Assets:Checking") or k.startswith("Assets:Saving"))
-            and k not in self.excluded_accounts
-        ]
-
-        # First get all account entries and filter out accounts with no entries
-        account_entries = {}
-        for account in all_accounts:
-            entries = self.get_account_entries(account)
-            if entries:  # Only include accounts that have entries
-                account_entries[account] = entries
-        
-        accounts = sorted(account_entries.keys())
-
-        # Then iterate through dates and look up balances
-        rows = []
+        # return start and end date
         date_first, date_last = self.get_ledger_duration(g.filtered.entries)
-        print(date_first, date_last)
-        current_date = date_first
 
-        while current_date <= date_last:
-            row = {"date": current_date}
-            for account in accounts:
-                # Find the last entry before or on current_date
-                entries = account_entries[account]
-                row[account] = {
-                    "balance": Decimal("0"),
-                    "transaction": Decimal("0"),
-                    "description": set(),
-                }
-                for entry_date, amount in entries:
-                    if entry_date <= current_date:
-                        row[account]["balance"] = amount
-                    else:
-                        break
-            rows.append(row)
-            current_date += datetime.timedelta(days=1)
+        # Add 1 day to date_first
+        date_first_obj = datetime.datetime.strptime(
+            str(date_first), "%Y-%m-%d"
+        ) + datetime.timedelta(days=1)
+        date_first = date_first_obj.strftime("%Y-%m-%d")
 
-        query = """SELECT account, date, payee, position WHERE account ~ "^Assets:Saving" OR account ~ "^Assets:Checking" """
-        rtypes, rrows = self.exec_query(query)
+        # Get last day of month for date_last
+        date_last_obj = datetime.datetime.strptime(str(date_last), "%Y-%m-%d")
+        next_month = date_last_obj.replace(day=28) + datetime.timedelta(days=4)
+        last_day = next_month - datetime.timedelta(days=next_month.day)
+        date_last = last_day.strftime("%Y-%m-%d")
 
-        # 0 - account, 1 - date, 2 - payee, 3 - position
-        for entry in rrows:
-            if not entry or entry.account not in accounts:
-                continue
-            # get index of the row by date difference
-            index = int((entry.date - date_first).days) - 1
-            if index < 0:
-                continue
-            row = rows[index]
-            row[entry.account]["transaction"] += entry.position.units.number
-            # get the first two words of payee
-            words = entry.payee.split()[:2] if entry.payee else [""]
-            if len(words) >= 2:
-                row[entry.account]["description"].add(f"{words[0]} {words[1]}")
-            elif len(words) == 1:
-                row[entry.account]["description"].add(f"{words[0]}")
-
-        # clean up the data, use $xxx.xx format for balance, and remove trailing ", " for description
-        for row in rows:
-            for account in accounts:
-                row[account]["balance"] = self.formatCurrency(row[account]["balance"])
-                row[account]["transaction"] = self.formatCurrency(
-                    row[account]["transaction"], hideZero=True
-                )
-                row[account]["description"] = ", ".join(row[account]["description"])
-
-        dump = json.dumps({
-            "accounts": accounts,
-            "rows": rows,
-        }, default=str)
-
-        print(f"Fetched {len(rows)} rows")
-
-        # url encode the dump
-        return urllib.parse.quote(dump)
+        # print(date_first, date_last)
+        return {
+            "start_date": date_first,
+            "end_date": date_last,
+        }
