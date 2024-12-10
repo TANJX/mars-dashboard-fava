@@ -1,3 +1,4 @@
+import json
 from typing import List
 import datetime
 from collections import namedtuple
@@ -8,14 +9,23 @@ from fava.beans.abc import Price
 from fava.beans.abc import Transaction
 from fava.context import g
 from fava.ext import FavaExtensionBase
+from fava.ext import extension_endpoint
 from fava.helpers import FavaAPIError
 from decimal import Decimal
-
+import urllib.parse
+from flask import request  # Add this import at the top
 
 class MarsDashboard(FavaExtensionBase):
     report_title = "Mars Dashboard"
     excluded_accounts = ["Assets:Checking:Future"]
-    # has_js_module = True
+    has_js_module = True
+
+    @extension_endpoint
+    def get_data(self):
+        """Return some data with a GET endpoint."""
+        start_date = request.args.get('start_date')
+        end_date = request.args.get('end_date')
+        return self.bootstrap()
 
     def get_ledger_duration(self, entries: List[Directive]):
         date_first = None
@@ -86,6 +96,7 @@ class MarsDashboard(FavaExtensionBase):
         # Then iterate through dates and look up balances
         rows = []
         date_first, date_last = self.get_ledger_duration(g.filtered.entries)
+        print(date_first, date_last)
         current_date = date_first
 
         while current_date <= date_last:
@@ -120,7 +131,7 @@ class MarsDashboard(FavaExtensionBase):
             row = rows[index]
             row[entry.account]["transaction"] += entry.position.units.number
             # get the first two words of payee
-            words = entry.payee.split()[:2]
+            words = entry.payee.split()[:2] if entry.payee else [""]
             if len(words) >= 2:
                 row[entry.account]["description"].add(f"{words[0]} {words[1]}")
             elif len(words) == 1:
@@ -135,7 +146,12 @@ class MarsDashboard(FavaExtensionBase):
                 )
                 row[account]["description"] = ", ".join(row[account]["description"])
 
-        return {
+        dump = json.dumps({
             "accounts": accounts,
             "rows": rows,
-        }
+        }, default=str)
+
+        print(f"Fetched {len(rows)} rows")
+
+        # url encode the dump
+        return urllib.parse.quote(dump)

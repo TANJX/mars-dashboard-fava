@@ -2,39 +2,4 @@
   {% include "style.css" %}
 </style>
 
-{% set data = extension.bootstrap() %}
-
-<div id="mars-dashboard">
-  <h3>Mars Dashboard</h3>
-  <table>
-    <thead>
-      <tr>
-        <!-- All accounts -->
-        <th>Date</th>
-        {% for account in data.accounts %}
-        {% set account_short = account.replace('Assets:Checking:', '').replace('Assets:Saving:', '') %}
-        {% set account_class = account.replace('Assets:', '').replace(':', '-').lower() %}
-        <th class="balance {{ account_class }}">
-          {{ account_short }}
-        </th>
-        <th class="transaction {{ account_class }}">Transaction</th>
-        <th class="description {{ account_class }}">Notes</th>
-        {% endfor %}
-      </tr>
-    </thead>
-    <!-- Balance of all accounts from first to last date -->
-    <tbody>
-      {% for row in data.rows %}
-      <tr>
-        <td>{{ row.date }}</td>
-        {% for account in data.accounts %}
-        {% set account_class = account.replace('Assets:', '').replace(':', '-').lower() %}
-        <td class="balance {{ account_class }}">{{ row[account]["balance"] }}</td>
-        <td class="transaction {{ account_class }}">{{ row[account]["transaction"] }}</td>
-        <td class="description {{ account_class }}">{{ row[account]["description"] }}</td>
-        {% endfor %}
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
-</div>
+<div id="mars-dashboard"></div>

@@ -1,15 +1,29 @@
 {
-    "version": "0.2.0",
-    "configurations": [
-        {
-          "name": "Run Fava",
-          "type": "debugpy",
-          "request": "launch",
-          "program": "/Users/marstanjx.mac/.virtualenvs/mars-universe-beancount-dbpg/bin/fava",
-          "args": ["/Users/marstanjx.mac/Development/mars-universe-beancount/journal/journal.beancount"],
-          "console": "integratedTerminal",
-          "justMyCode": false
-        },
-    ]
-  }
-  
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Run Fava MacOS",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "/Users/marstanjx.mac/.virtualenvs/mars-universe-beancount-dbpg/bin/fava",
+      "args": [
+        "/Users/marstanjx.mac/Development/mars-universe-beancount/journal/journal.beancount"
+      ],
+      "console": "integratedTerminal",
+      "justMyCode": false
+    },
+    {
+      "name": "Run Fava WSL",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "/home/mars/.pyenv/versions/3.10.4/bin/fava",
+      "args": [
+        "-H",
+        "0.0.0.0",
+        "/home/mars/repo/mars-universe/mars-universe-beancount/journal/journal.beancount"
+      ],
+      "console": "integratedTerminal",
+      "justMyCode": false
+    },
+  ]
+}
