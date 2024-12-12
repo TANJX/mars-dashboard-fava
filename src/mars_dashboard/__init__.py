@@ -156,9 +156,10 @@ class MarsDashboard(FavaExtensionBase):
     def formatCurrency(self, number, hideZero=False):
         if hideZero and number == Decimal("0"):
             return ""
-        if number < 0:
-            return f"-${abs(number.quantize(Decimal('1.00')))}"
-        return f"${number.quantize(Decimal('1.00'))}"
+        return number.quantize(Decimal('1.00'))
+        # if number < 0:
+            # return f"-${abs(number.quantize(Decimal('1.00')))}"
+        # return f"${number.quantize(Decimal('1.00'))}"
 
     def bootstrap(self):
         # return start and end date
@@ -176,7 +177,6 @@ class MarsDashboard(FavaExtensionBase):
         last_day = next_month - datetime.timedelta(days=next_month.day)
         date_last = last_day.strftime("%Y-%m-%d")
 
-        # print(date_first, date_last)
         return {
             "start_date": date_first,
             "end_date": date_last,

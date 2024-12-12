@@ -1,5 +1,4 @@
 import { useEffect, useState, useCallback } from 'react';
-// import data from './data';
 import MainTable from './components/MainTable';
 import AGTable from './components/AGTable';
 
@@ -30,7 +29,7 @@ function App() {
 
       setIsLoading(true);
       const response = await fetch(
-        `/mars-universe-bank/extension/MarsDashboard/get_data?start_date=${startDate}&end_date=${endDate}`
+        `http://127.0.0.1:5000/mars-universe-bank/extension/MarsDashboard/get_data?start_date=${startDate}&end_date=${endDate}`
       );
 
       if (!response.ok) {

@@ -1,3 +1,22 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+.header-bank-amex {
+    @apply bg-bank-amex text-white;
+}
+.header-bank-bofa {
+    @apply bg-bank-bofa text-white;
+}
+.header-bank-apple {
+    @apply bg-bank-apple text-white;
+}
+.header-bank-chase {
+    @apply bg-bank-chase text-white;
+}
+.header-bank-discover {
+    @apply bg-bank-discover text-white;
+}
+.header-bank-citi {
+    @apply bg-bank-citi text-white;
+}
