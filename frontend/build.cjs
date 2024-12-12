@@ -5,13 +5,14 @@ const { execSync } = require('child_process');
 async function build() {
     try {
         // Run CRA build
-        console.log('Building React app...');
-        execSync('npm run build', { stdio: 'inherit' });
+        console.log('Building Vite app...');
+        execSync('yarn build', { stdio: 'inherit' });
 
         // Read the main bundle file from the build output
-        const buildPath = path.resolve(__dirname, 'build/static/js');
+        const buildPath = path.resolve(__dirname, 'dist/assets');
         const files = fs.readdirSync(buildPath);
-        const mainBundle = files.find(f => f.match(/^main\..*\.js$/));
+        console.log(buildPath)
+        const mainBundle = files.find(f => f.match(/^index.*\.js$/));
         
         if (!mainBundle) {
             throw new Error('Could not find main bundle in build output');
@@ -20,9 +21,9 @@ async function build() {
         const bundleContent = fs.readFileSync(path.join(buildPath, mainBundle), 'utf8');
 
         // Read the CSS file
-        const cssPath = path.resolve(__dirname, 'build/static/css');
+        const cssPath = path.resolve(__dirname, 'dist/assets');
         const cssFiles = fs.readdirSync(cssPath);
-        const mainCss = cssFiles.find(f => f.match(/^main\..*\.css$/));
+        const mainCss = cssFiles.find(f => f.match(/^index.*\.css$/));
 
         if (!mainCss) {
             throw new Error('Could not find main CSS in build output');
