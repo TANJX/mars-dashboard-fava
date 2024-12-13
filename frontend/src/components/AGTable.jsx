@@ -37,8 +37,88 @@ function formulaFormatter(value) {
 }
 
 function AGTable({ dashboardData }) {
-    const [rowData, setRowData] = useState(dashboardData.rows);
-    const [userEdits, setUserEdits] = useState(new Map());
+    // Add this helper function inside AGTable component
+    const recalculateBalances = (rowData, account, startIndex) => {
+        const newRowData = [...rowData];
+        let prevBalance = startIndex > 0 ? parseValue(newRowData[startIndex - 1][account].balance) : 0;
+        let prevTransaction = startIndex > 0 ? parseValue(newRowData[startIndex - 1][account].transaction) : 0;
+
+        for (let i = startIndex; i < newRowData.length; i++) {
+            // Calculate new balance based on previous balance and previous transaction
+            newRowData[i][account].balance = (prevBalance + prevTransaction).toFixed(2);
+            
+            // Update previous values for next iteration
+            prevBalance = parseValue(newRowData[i][account].balance);
+            prevTransaction = parseValue(newRowData[i][account].transaction);
+        }
+        return newRowData;
+    };
+
+    // Initialize rowData with user transactions applied
+    const [rowData, setRowData] = useState(() => {
+        const updatedRows = [...dashboardData.rows];
+        
+        if (dashboardData.user_transactions) {
+            dashboardData.user_transactions.forEach(transaction => {
+                const { date, account, transaction: transactionValue, description } = transaction;
+                const rowIndex = updatedRows.findIndex(row => row.date === date);
+                
+                if (rowIndex !== -1) {
+                    // Update both transaction and description if they exist
+                    if (transactionValue) {
+                        updatedRows[rowIndex][account].transaction = transactionValue;
+                    }
+                    if (description) {
+                        updatedRows[rowIndex][account].description = description;
+                    }
+                    
+                    // Only recalculate balances if there was a transaction value
+                    if (transactionValue) {
+                        return recalculateBalances(updatedRows, account, rowIndex);
+                    }
+                }
+            });
+        }
+        
+        return updatedRows;
+    });
+
+    // Initialize userEdits with data from dashboardData.user_transactions
+    const [userEdits, setUserEdits] = useState(() => {
+        const editsMap = new Map();
+        
+        // If user_transactions exists, populate the userEdits map
+        if (dashboardData.user_transactions) {
+            dashboardData.user_transactions.forEach(transaction => {
+                const { date, account, transaction: transactionValue, description } = transaction;
+                
+                // Create nested maps following existing structure
+                if (!editsMap.has(date)) {
+                    editsMap.set(date, new Map());
+                }
+                if (!editsMap.get(date).has(account)) {
+                    editsMap.get(date).set(account, new Map());
+                }
+                
+                // Add transaction and description if they exist
+                const accountEdits = editsMap.get(date).get(account);
+                if (transactionValue) {
+                    accountEdits.set('transaction', {
+                        value: transactionValue,
+                        timestamp: new Date().toISOString()
+                    });
+                }
+                if (description) {
+                    accountEdits.set('description', {
+                        value: description,
+                        timestamp: new Date().toISOString()
+                    });
+                }
+            });
+        }
+        
+        return editsMap;
+    });
 
     // Validate data integrity
     useMemo(() => {
@@ -83,23 +163,6 @@ function AGTable({ dashboardData }) {
         });
     }, [dashboardData]);
 
-    // Add this helper function inside AGTable component
-    const recalculateBalances = (rowData, account, startIndex) => {
-        const newRowData = [...rowData];
-        let prevBalance = startIndex > 0 ? parseValue(newRowData[startIndex - 1][account].balance) : 0;
-        let prevTransaction = startIndex > 0 ? parseValue(newRowData[startIndex - 1][account].transaction) : 0;
-
-        for (let i = startIndex; i < newRowData.length; i++) {
-            // Calculate new balance based on previous balance and previous transaction
-            newRowData[i][account].balance = (prevBalance + prevTransaction).toFixed(2);
-            
-            // Update previous values for next iteration
-            prevBalance = parseValue(newRowData[i][account].balance);
-            prevTransaction = parseValue(newRowData[i][account].transaction);
-        }
-        return newRowData;
-    };
-
     // Update the userEdits tracking structure
     const handleEditUpdate = (date, account, field, value) => {
         setUserEdits(prev => {
@@ -116,6 +179,14 @@ function AGTable({ dashboardData }) {
                 timestamp: new Date().toISOString()
             });
             return newEdits;
+        });
+        // send an async request to save the transaction
+        fetch(`http://127.0.0.1:5000/mars-universe-bank/extension/MarsDashboard/save_user_transaction`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ date, account, transaction: field === "transaction" ? value || "" : undefined, description: field === "description" ? value || "" : undefined }),
         });
     };
 

@@ -1,4 +1,5 @@
 import json
+import os
 from typing import List
 import datetime
 from collections import namedtuple
@@ -73,7 +74,7 @@ class MarsDashboard(FavaExtensionBase):
             current_date += datetime.timedelta(days=1)
 
         query = """SELECT account, date, payee, position WHERE account ~ "^Assets:Saving" OR account ~ "^Assets:Checking" """
-        rtypes, rrows = self.exec_query(query)
+        _, rrows = self.exec_query(query)
 
         # 0 - account, 1 - date, 2 - payee, 3 - position
         for entry in rrows:
@@ -103,13 +104,59 @@ class MarsDashboard(FavaExtensionBase):
 
         print(f"Fetched {len(rows)} rows for {start_date} to {end_date}")
 
+        user_transactions = []
+        with open(os.path.join(os.path.dirname(g.ledger.beancount_file_path), "user_transactions.jsonl"), "r") as f:
+            for line in f:
+                user_transactions.append(json.loads(line))
+        # Create a map of existing transactions for efficient lookup and merging
+        transaction_map = {}
+        for transaction in user_transactions:
+            key = (transaction['date'], transaction['account'])
+            if key not in transaction_map:
+                transaction_map[key] = transaction
+            else:
+                # Merge transaction data, keeping the latest entry
+                existing = transaction_map[key]
+                if 'transaction' in transaction:
+                    existing['transaction'] = transaction['transaction']
+                if 'description' in transaction:
+                    existing['description'] = transaction['description']
+                    
+                # Ensure both transaction and description fields exist
+                if 'transaction' not in existing:
+                    existing['transaction'] = ''
+                if 'description' not in existing:
+                    existing['description'] = ''
+                
+                if existing['transaction'] == '' and existing['description'] == '':
+                    del transaction_map[key]
+
+        # Convert back to list
+        user_transactions = list(transaction_map.values())
+
         return json.dumps(
             {
                 "accounts": accounts,
                 "rows": rows,
+                "user_transactions": user_transactions,
             },
             default=str,
         )
+
+    """
+    Format:
+    { date, account, transaction, description }
+    Append the transaction as jsonl to the ledger root directory
+    """
+    @extension_endpoint(methods=["POST"])
+    def save_user_transaction(self):
+        data = request.json
+        print(data)
+        # g.ledger.
+        file_path = os.path.join(os.path.dirname(g.ledger.beancount_file_path), "user_transactions.jsonl")
+        with open(file_path, "a") as f:
+            f.write(json.dumps(data) + "\n")
+        return json.dumps({"status": "success"})
 
     def get_ledger_duration(self, entries: List[Directive]):
         date_first = None
