@@ -44,7 +44,7 @@ async function build() {
         }
         const script = document.createElement('script');
         script.setAttribute('data-mars-dashboard', 'true');
-        script.textContent = ${JSON.stringify(bundleContent)};
+        script.textContent = '(function() { ' + ${JSON.stringify(bundleContent)} + ' })();';
         document.body.appendChild(script);
     },
 };`;

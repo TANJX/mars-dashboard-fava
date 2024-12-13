@@ -81,7 +81,7 @@ class MarsDashboard(FavaExtensionBase):
             if not entry or entry.account not in accounts:
                 continue
             # get index of the row by date difference
-            index = int((entry.date - date_first).days) - 1
+            index = int((entry.date - date_first).days)
             if index < 0 or index >= len(rows):
                 continue
             row = rows[index]
@@ -104,31 +104,36 @@ class MarsDashboard(FavaExtensionBase):
 
         print(f"Fetched {len(rows)} rows for {start_date} to {end_date}")
 
+        user_transactions_path = os.path.join(
+            os.path.dirname(g.ledger.beancount_file_path), "user_transactions.jsonl"
+        )
         user_transactions = []
-        with open(os.path.join(os.path.dirname(g.ledger.beancount_file_path), "user_transactions.jsonl"), "r") as f:
-            for line in f:
-                user_transactions.append(json.loads(line))
+
+        if os.path.exists(user_transactions_path):
+            with open(user_transactions_path, "r") as f:
+                for line in f:
+                    user_transactions.append(json.loads(line))
         # Create a map of existing transactions for efficient lookup and merging
         transaction_map = {}
         for transaction in user_transactions:
-            key = (transaction['date'], transaction['account'])
+            key = (transaction["date"], transaction["account"])
             if key not in transaction_map:
                 transaction_map[key] = transaction
             else:
                 # Merge transaction data, keeping the latest entry
                 existing = transaction_map[key]
-                if 'transaction' in transaction:
-                    existing['transaction'] = transaction['transaction']
-                if 'description' in transaction:
-                    existing['description'] = transaction['description']
-                    
+                if "transaction" in transaction:
+                    existing["transaction"] = transaction["transaction"]
+                if "description" in transaction:
+                    existing["description"] = transaction["description"]
+
                 # Ensure both transaction and description fields exist
-                if 'transaction' not in existing:
-                    existing['transaction'] = ''
-                if 'description' not in existing:
-                    existing['description'] = ''
-                
-                if existing['transaction'] == '' and existing['description'] == '':
+                if "transaction" not in existing:
+                    existing["transaction"] = ""
+                if "description" not in existing:
+                    existing["description"] = ""
+
+                if existing["transaction"] == "" and existing["description"] == "":
                     del transaction_map[key]
 
         # Convert back to list
@@ -148,12 +153,15 @@ class MarsDashboard(FavaExtensionBase):
     { date, account, transaction, description }
     Append the transaction as jsonl to the ledger root directory
     """
+
     @extension_endpoint(methods=["POST"])
     def save_user_transaction(self):
         data = request.json
         print(data)
         # g.ledger.
-        file_path = os.path.join(os.path.dirname(g.ledger.beancount_file_path), "user_transactions.jsonl")
+        file_path = os.path.join(
+            os.path.dirname(g.ledger.beancount_file_path), "user_transactions.jsonl"
+        )
         with open(file_path, "a") as f:
             f.write(json.dumps(data) + "\n")
         return json.dumps({"status": "success"})
@@ -193,19 +201,21 @@ class MarsDashboard(FavaExtensionBase):
             g.conversion,
             with_children=g.ledger.fava_options.account_journal_include_children,
         )
-        return [
+        result = [
             (entry[0].date, entry[2].get("USD", Decimal("0")))
             for entry in entries
             if isinstance(entry[0], Transaction)
             and isinstance(entry[2], SimpleCounterInventory)
         ]
+        # shift the entry date by 1 day
+        return [(entry[0] + datetime.timedelta(days=1), entry[1]) for entry in result]
 
     def formatCurrency(self, number, hideZero=False):
         if hideZero and number == Decimal("0"):
             return ""
-        return number.quantize(Decimal('1.00'))
+        return number.quantize(Decimal("1.00"))
         # if number < 0:
-            # return f"-${abs(number.quantize(Decimal('1.00')))}"
+        # return f"-${abs(number.quantize(Decimal('1.00')))}"
         # return f"${number.quantize(Decimal('1.00'))}"
 
     def bootstrap(self):

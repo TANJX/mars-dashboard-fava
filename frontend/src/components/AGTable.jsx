@@ -1,6 +1,10 @@
 import { AgGridReact } from "ag-grid-react";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { themeBalham } from "ag-grid-community";
+
+console.log("Rendering AGTable component");
+
+let renderCount = 0;
 
 function currencyFormatter(value, currency = "$") {
     if (!value || value === "" || value === "0") {
@@ -37,8 +41,18 @@ function formulaFormatter(value) {
 }
 
 function AGTable({ dashboardData }) {
+    console.log(`AGTable render count: ${++renderCount}`);
+    console.time('AGTable render');
+
+    useEffect(() => {
+        console.timeEnd('AGTable render');
+        return () => console.log('AGTable unmounting');
+    });
+
     // Add this helper function inside AGTable component
     const recalculateBalances = (rowData, account, startIndex) => {
+        console.log("recalculateBalances called", {account, startIndex});
+        console.time('recalculateBalances');
         const newRowData = [...rowData];
         let prevBalance = startIndex > 0 ? parseValue(newRowData[startIndex - 1][account].balance) : 0;
         let prevTransaction = startIndex > 0 ? parseValue(newRowData[startIndex - 1][account].transaction) : 0;
@@ -51,11 +65,14 @@ function AGTable({ dashboardData }) {
             prevBalance = parseValue(newRowData[i][account].balance);
             prevTransaction = parseValue(newRowData[i][account].transaction);
         }
+        console.timeEnd('recalculateBalances');
         return newRowData;
     };
 
     // Initialize rowData with user transactions applied
     const [rowData, setRowData] = useState(() => {
+        console.log("Initializing rowData");
+        console.time('rowData initialization');
         const updatedRows = [...dashboardData.rows];
         
         if (dashboardData.user_transactions) {
@@ -79,12 +96,14 @@ function AGTable({ dashboardData }) {
                 }
             });
         }
-        
+        console.timeEnd('rowData initialization');
         return updatedRows;
     });
 
     // Initialize userEdits with data from dashboardData.user_transactions
     const [userEdits, setUserEdits] = useState(() => {
+        console.log("Initializing userEdits");
+        console.time('userEdits initialization');
         const editsMap = new Map();
         
         // If user_transactions exists, populate the userEdits map
@@ -116,12 +135,14 @@ function AGTable({ dashboardData }) {
                 }
             });
         }
-        
+        console.timeEnd('userEdits initialization');
         return editsMap;
     });
 
     // Validate data integrity
     useMemo(() => {
+        console.log("Running data integrity validation");
+        console.time('data validation');
         if (!dashboardData.rows || dashboardData.rows.length === 0) return;
 
         // For each account
@@ -161,10 +182,12 @@ function AGTable({ dashboardData }) {
                 prevBalance = balance;
             });
         });
+        console.timeEnd('data validation');
     }, [dashboardData]);
 
     // Update the userEdits tracking structure
     const handleEditUpdate = (date, account, field, value) => {
+        console.log("handleEditUpdate called", {date, account, field, value});
         setUserEdits(prev => {
             const newEdits = new Map(prev);
             if (!newEdits.has(date)) {
@@ -199,6 +222,8 @@ function AGTable({ dashboardData }) {
 
     // Column definitions
     const columnDefs = useMemo(() => {
+        console.log("Recalculating columnDefs");
+        console.time('columnDefs calculation');
         const columns = [
             {
                 field: "date",
@@ -312,7 +337,7 @@ function AGTable({ dashboardData }) {
                 );
             }
         });
-
+        console.timeEnd('columnDefs calculation');
         return columns;
     }, [dashboardData.accounts, dashboardData.rows, userEdits]);
 
