@@ -6,7 +6,7 @@ console.log("Rendering AGTable component");
 
 let renderCount = 0;
 
-function currencyFormatter(value, currency = "$") {
+function currencyFormatter(value: string, currency = "$") {
     if (!value || value === "" || value === "0") {
         return "";
     }
@@ -14,7 +14,7 @@ function currencyFormatter(value, currency = "$") {
     return isNaN(num) ? "" : (num < 0 ? "-" + currency + Math.abs(num).toFixed(2) : currency + num.toFixed(2));
 }
 
-function evaluateFormula(formula) {
+function evaluateFormula(formula: string) {
     try {
         const result = eval(formula.slice(1));
         return isNaN(result) ? 0 : result;
@@ -24,7 +24,7 @@ function evaluateFormula(formula) {
     }
 }
 
-function parseValue(value) {
+function parseValue(value: string) {
     if (!value || value === "") return 0;
     
     if (typeof value === 'string' && value.startsWith('=')) {
@@ -35,12 +35,36 @@ function parseValue(value) {
     return isNaN(num) ? 0 : num;
 }
 
-function formulaFormatter(value) {
+function formulaFormatter(value: string) {
     if (!value || value === "") return "";
     return currencyFormatter(parseValue(value));
 }
 
-function AGTable({ dashboardData }) {
+export interface AccountData {
+    balance: string;
+    transaction?: string;
+    description?: string;
+}
+
+export interface DashboardRow {
+    date: string;
+    [accountKey: string]: AccountData | string; // allows for dynamic account names
+}
+
+export interface UserTransaction {
+    date: string;
+    account: string;
+    transaction?: string;
+    description?: string;
+}
+
+export interface DashboardData {
+    rows: DashboardRow[];
+    accounts: string[];
+    user_transactions?: UserTransaction[];
+}
+
+function AGTable({ dashboardData }: { dashboardData: DashboardData }) {
     console.log(`AGTable render count: ${++renderCount}`);
     console.time('AGTable render');
 
@@ -50,20 +74,22 @@ function AGTable({ dashboardData }) {
     });
 
     // Add this helper function inside AGTable component
-    const recalculateBalances = (rowData, account, startIndex) => {
+    const recalculateBalances = (rowData: DashboardRow[], account: string, startIndex: number) => {
         console.log("recalculateBalances called", {account, startIndex});
         console.time('recalculateBalances');
         const newRowData = [...rowData];
-        let prevBalance = startIndex > 0 ? parseValue(newRowData[startIndex - 1][account].balance) : 0;
-        let prevTransaction = startIndex > 0 ? parseValue(newRowData[startIndex - 1][account].transaction) : 0;
+        const prevAccountData = newRowData[startIndex - 1][account] as AccountData;
+        let prevBalance = startIndex > 0 ? parseValue(prevAccountData.balance) : 0;
+        let prevTransaction = startIndex > 0 ? parseValue(prevAccountData.transaction || '0') : 0;
 
         for (let i = startIndex; i < newRowData.length; i++) {
             // Calculate new balance based on previous balance and previous transaction
-            newRowData[i][account].balance = (prevBalance + prevTransaction).toFixed(2);
+            const accountData = newRowData[i][account] as AccountData;
+            accountData.balance = (prevBalance + prevTransaction).toFixed(2);
             
             // Update previous values for next iteration
-            prevBalance = parseValue(newRowData[i][account].balance);
-            prevTransaction = parseValue(newRowData[i][account].transaction);
+            prevBalance = parseValue(accountData.balance);
+            prevTransaction = parseValue(accountData.transaction || '0');
         }
         console.timeEnd('recalculateBalances');
         return newRowData;
@@ -82,11 +108,12 @@ function AGTable({ dashboardData }) {
                 
                 if (rowIndex !== -1) {
                     // Update both transaction and description if they exist
+                    const accountData = updatedRows[rowIndex][account] as AccountData;
                     if (transactionValue) {
-                        updatedRows[rowIndex][account].transaction = transactionValue;
+                        accountData.transaction = transactionValue;
                     }
                     if (description) {
-                        updatedRows[rowIndex][account].description = description;
+                        accountData.description = description;
                     }
                     
                     // Only recalculate balances if there was a transaction value
@@ -186,7 +213,7 @@ function AGTable({ dashboardData }) {
     }, [dashboardData]);
 
     // Update the userEdits tracking structure
-    const handleEditUpdate = (date, account, field, value) => {
+    const handleEditUpdate = (date: string, account: string, field: string, value: string) => {
         console.log("handleEditUpdate called", {date, account, field, value});
         setUserEdits(prev => {
             const newEdits = new Map(prev);
@@ -214,7 +241,7 @@ function AGTable({ dashboardData }) {
     };
 
     // Helper to check if a cell was edited by user
-    const isUserEdited = (date, account, field) => {
+    const isUserEdited = (date: string, account: string, field: string) => {
         return userEdits.has(date) && 
                userEdits.get(date).has(account) && 
                userEdits.get(date).get(account).has(field);
@@ -268,8 +295,8 @@ function AGTable({ dashboardData }) {
                         headerName: accountShort,
                         field: `${account}.balance`,
                         headerClass: `header-bank-${accountClass}`,
-                        width: 100,
-                        valueFormatter: (params) => currencyFormatter(params.value),
+                        width: 80,
+                        valueFormatter: (params: { value: string }) => currencyFormatter(params.value),
                         cellStyle: (params) => ({
                             textAlign: "right",
                             color: isPastDate(params.data.date) ? "#D1D5DB" : 
@@ -281,7 +308,7 @@ function AGTable({ dashboardData }) {
                         field: `${account}.transaction`,
                         editable: true,
                         headerClass: `header-bank-${accountClass}`,
-                        width: 100,
+                        width: 80,
                         valueFormatter: (params) => formulaFormatter(params.value),
                         cellStyle: (params) => ({
                             textAlign: "right",
@@ -341,7 +368,7 @@ function AGTable({ dashboardData }) {
         return columns;
     }, [dashboardData.accounts, dashboardData.rows, userEdits]);
 
-    const isPastDate = (date) => {
+    const isPastDate = (date: string) => {
         const today = new Date().toISOString().split("T")[0];
         return date < today;
     };
@@ -365,6 +392,7 @@ function AGTable({ dashboardData }) {
                     resizable: true,
                 }}
                 suppressScrollOnNewData={true}
+                animateRows={false}
             />
         </div>
     );

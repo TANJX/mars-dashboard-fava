@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
-import MainTable from './components/MainTable';
+// import MainTable from './components/MainTable';
 import AGTable from './components/AGTable';
 
 function App() {
@@ -38,6 +38,25 @@ function App() {
 
       const rawData = await response.text();
       const data = JSON.parse(rawData);
+      // add an extra month to the data
+      // const lastDate = data.rows[data.rows.length - 1].date;
+      const lastRow = structuredClone(data.rows[data.rows.length - 1]);
+      // remove all transaction values
+      Object.keys(lastRow).forEach(key => {
+        if (key !== 'date') {
+          lastRow[key].transaction = '';
+          lastRow[key].description = '';
+        }
+      });
+      const dateObj = new Date(lastRow.date);
+      for (let i = 0; i < 31; i++) {
+        dateObj.setDate(dateObj.getDate() + 1);
+        const nextDate = dateObj.toISOString().split('T')[0];
+        const newRow = structuredClone(lastRow);
+        newRow.date = nextDate;
+        data.rows.push(newRow);
+      }
+      console.log(data.rows);
 
       setMarsDashboardData(data);
       console.log('Updated dashboard data');
@@ -65,7 +84,6 @@ function App() {
 
   return (
     <div>
-
       {/* <MainTable dashboardData={marsDashboardData} /> */}
       <AGTable dashboardData={marsDashboardData} />
     </div>
