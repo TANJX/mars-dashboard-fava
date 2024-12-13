@@ -1,5 +1,6 @@
+import React from 'react';
 import { StrictMode } from "react";
-import { createRoot } from "react-dom/client";
+import { createRoot, Root } from "react-dom/client";
 import "./index.css";
 import App from "./App.tsx";
 
@@ -7,6 +8,12 @@ import { ModuleRegistry } from "ag-grid-community";
 import { ClientSideRowModelModule, ValidationModule, TextEditorModule, CellStyleModule } from "ag-grid-community";
 
 ModuleRegistry.registerModules([ClientSideRowModelModule, ValidationModule, TextEditorModule, CellStyleModule]);
+
+declare global {
+    interface Window {
+        marsDashboard: Root;
+    }
+}
 
 // Unmount existing React app
 if (window.marsDashboard) {

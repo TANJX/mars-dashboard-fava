@@ -5,8 +5,8 @@ import AGTable from './components/AGTable';
 function App() {
   const [marsDashboardData, setMarsDashboardData] = useState({ accounts: [], rows: [] });
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [cachedDates, setCachedDates] = useState({ startDate: null, endDate: null });
+  const [error, setError] = useState<string | null>(null);
+  const [cachedDates, setCachedDates] = useState<{ startDate: string | null, endDate: string | null }>({ startDate: null, endDate: null });
 
   const fetchData = useCallback(async () => {
     try {
@@ -38,10 +38,10 @@ function App() {
 
       const rawData = await response.text();
       const data = JSON.parse(rawData);
+      
       // add an extra month to the data
-      // const lastDate = data.rows[data.rows.length - 1].date;
       const lastRow = structuredClone(data.rows[data.rows.length - 1]);
-      // remove all transaction values
+      // remove transaction values
       Object.keys(lastRow).forEach(key => {
         if (key !== 'date') {
           lastRow[key].transaction = '';
@@ -62,7 +62,7 @@ function App() {
       console.log('Updated dashboard data');
     } catch (err) {
       console.error('Error fetching data:', err);
-      setError(err.message);
+      setError(err instanceof Error ? err.message : 'Unknown error');
     } finally {
       setIsLoading(false);
     }

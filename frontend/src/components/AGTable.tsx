@@ -1,6 +1,6 @@
 import { AgGridReact } from "ag-grid-react";
 import { useMemo, useState, useEffect } from "react";
-import { themeBalham } from "ag-grid-community";
+import { CellClassParams, ColDef, NewValueParams, themeBalham, ValueFormatterParams } from "ag-grid-community";
 
 console.log("Rendering AGTable component");
 
@@ -180,8 +180,9 @@ function AGTable({ dashboardData }: { dashboardData: DashboardData }) {
 
             // Check each day's balance
             dashboardData.rows.forEach((row, index) => {
-                const balance = parseFloat(row[account].balance);
-                const currentTransaction = parseFloat(row[account].transaction || 0);
+                const accountData = row[account] as AccountData;
+                const balance = parseFloat(accountData.balance);
+                const currentTransaction = parseFloat(accountData.transaction || '0');
 
                 // Skip validation for first row since we don't have previous balance
                 if (index === 0) {
@@ -241,24 +242,25 @@ function AGTable({ dashboardData }: { dashboardData: DashboardData }) {
     };
 
     // Helper to check if a cell was edited by user
-    const isUserEdited = (date: string, account: string, field: string) => {
+    const isUserEdited = (date: string | undefined, account: string, field: string) => {
+        if (!date) return false;
         return userEdits.has(date) && 
                userEdits.get(date).has(account) && 
                userEdits.get(date).get(account).has(field);
     };
 
     // Column definitions
-    const columnDefs = useMemo(() => {
+    const columnDefs = useMemo<ColDef<DashboardRow, any>[]>(() => {
         console.log("Recalculating columnDefs");
         console.time('columnDefs calculation');
-        const columns = [
+        const columns: ColDef<DashboardRow, any>[] = [
             {
                 field: "date",
                 headerName: "Date",
                 headerClass: "bg-black text-white",
-                pinned: "left",
+                pinned: "left" as const,
                 width: 120,
-                cellStyle: (params) => {
+                cellStyle: (params: CellClassParams<DashboardRow>) => {
                     const today = new Date().toISOString().split("T")[0];
                     const isToday = params.value === today;
                     const isPast = params.value < today;
@@ -277,7 +279,7 @@ function AGTable({ dashboardData }: { dashboardData: DashboardData }) {
         dashboardData.accounts.forEach((account) => {
             // Check if account has any transactions or non-zero balances
             const hasData = dashboardData.rows.some((row) => {
-                const accountData = row[account];
+                const accountData = row[account] as AccountData;
                 return accountData.transaction || (accountData.balance && parseFloat(accountData.balance) !== 0);
             });
 
@@ -297,9 +299,9 @@ function AGTable({ dashboardData }: { dashboardData: DashboardData }) {
                         headerClass: `header-bank-${accountClass}`,
                         width: 80,
                         valueFormatter: (params: { value: string }) => currencyFormatter(params.value),
-                        cellStyle: (params) => ({
+                        cellStyle: (params: CellClassParams<DashboardRow>) => ({
                             textAlign: "right",
-                            color: isPastDate(params.data.date) ? "#D1D5DB" : 
+                            color: isPastDate(params.data?.date) ? "#D1D5DB" : 
                                   parseFloat(params.value) < 0 ? "red" : "inherit",
                         }),
                     },
@@ -309,14 +311,15 @@ function AGTable({ dashboardData }: { dashboardData: DashboardData }) {
                         editable: true,
                         headerClass: `header-bank-${accountClass}`,
                         width: 80,
-                        valueFormatter: (params) => formulaFormatter(params.value),
-                        cellStyle: (params) => ({
+                        valueFormatter: (params: ValueFormatterParams<DashboardRow>) => formulaFormatter(params.value),
+                        cellStyle: (params: CellClassParams<DashboardRow>) => ({
                             textAlign: "right",
-                            color: isPastDate(params.data.date) ? "#D1D5DB" : 
-                                  isUserEdited(params.data.date, account, 'transaction') ? "blue" : "inherit",
+                            color: isPastDate(params.data?.date) ? "#D1D5DB" : 
+                                  isUserEdited(params.data?.date, account, 'transaction') ? "blue" : "inherit",
                         }),
-                        onCellValueChanged: (event) => {
-                            const account = event.column.colDef.field.split(".")[0];
+                        onCellValueChanged: (event: NewValueParams<DashboardRow, string>) => {
+                            const field = event.column.getColDef().field;
+                            const account = field?.split(".")[0] ?? "";
                             const rowIndex = rowData.findIndex((row) => row.date === event.data.date);
                             
                             if (rowIndex === -1) {
@@ -329,11 +332,12 @@ function AGTable({ dashboardData }: { dashboardData: DashboardData }) {
                                 event.data.date,
                                 account,
                                 'transaction',
-                                event.newValue
+                                event.newValue || ""
                             );
 
                             const updatedRowData = [...rowData];
-                            updatedRowData[rowIndex][account].transaction = event.newValue;
+                            const accountData = updatedRowData[rowIndex][account] as AccountData;
+                            accountData.transaction = event.newValue || "";
                             const finalRowData = recalculateBalances(updatedRowData, account, rowIndex);
                             setRowData(finalRowData);
                         },
@@ -344,20 +348,17 @@ function AGTable({ dashboardData }: { dashboardData: DashboardData }) {
                         editable: true,
                         headerClass: `header-bank-${accountClass}`,
                         width: 120,
-                        cellStyle: (params) => ({
+                        cellStyle: (params: CellClassParams<DashboardRow, string>) => ({
                             textAlign: "left",
-                            color: isPastDate(params.data.date) ? "#D1D5DB" : 
-                                  isUserEdited(params.data.date, account, 'description') ? "blue" : "inherit",
-                            whiteSpace: "nowrap",
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
+                            color: isPastDate(params.data?.date) ? "#D1D5DB" : 
+                                  isUserEdited(params.data?.date, account, 'description') ? "blue" : "inherit",
                         }),
-                        onCellValueChanged: (event) => {
+                        onCellValueChanged: (event: NewValueParams<DashboardRow, string>) => {
                             handleEditUpdate(
                                 event.data.date,
                                 account,
                                 'description',
-                                event.newValue
+                                event.newValue || ""
                             );
                         },
                     }
@@ -368,7 +369,8 @@ function AGTable({ dashboardData }: { dashboardData: DashboardData }) {
         return columns;
     }, [dashboardData.accounts, dashboardData.rows, userEdits]);
 
-    const isPastDate = (date: string) => {
+    const isPastDate = (date: string | undefined) => {
+        if (!date) return false;
         const today = new Date().toISOString().split("T")[0];
         return date < today;
     };
