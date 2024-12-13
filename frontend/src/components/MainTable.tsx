@@ -1,4 +1,6 @@
-function MainTable({ dashboardData }) {
+import { AccountData, DashboardData } from "../types/DashboardData";
+
+function MainTable({ dashboardData }: { dashboardData: DashboardData }) {
   return (
     <table>
     <thead>
@@ -39,16 +41,17 @@ function MainTable({ dashboardData }) {
               {row.date}
             </td>
             {dashboardData.accounts.map(account => {
+              const accountData = row[account] as AccountData;
               return (
                 <>
                   <td className={isPast ? 'text-gray-300' : ''}>
-                    {row[account].balance}
+                    {accountData.balance}
                   </td>
                   <td className={isPast ? 'text-gray-300' : ''}>
-                    {row[account].transaction}
+                    {accountData.transaction}
                   </td>
                   <td className={`w-[150px] max-w-[150px] whitespace-nowrap overflow-hidden text-ellipsis text-left ${isPast ? 'text-gray-300' : ''}`}>
-                    {row[account].description}
+                    {accountData.description}
                   </td>
                 </>
               );

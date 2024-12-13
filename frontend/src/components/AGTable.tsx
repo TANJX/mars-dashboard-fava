@@ -1,6 +1,7 @@
 import { AgGridReact } from "ag-grid-react";
 import { useMemo, useState, useEffect } from "react";
 import { CellClassParams, ColDef, NewValueParams, themeBalham, ValueFormatterParams } from "ag-grid-community";
+import { DashboardData, DashboardRow, AccountData } from "../types/DashboardData";
 
 console.log("Rendering AGTable component");
 
@@ -38,30 +39,6 @@ function parseValue(value: string) {
 function formulaFormatter(value: string) {
     if (!value || value === "") return "";
     return currencyFormatter(parseValue(value));
-}
-
-export interface AccountData {
-    balance: string;
-    transaction?: string;
-    description?: string;
-}
-
-export interface DashboardRow {
-    date: string;
-    [accountKey: string]: AccountData | string; // allows for dynamic account names
-}
-
-export interface UserTransaction {
-    date: string;
-    account: string;
-    transaction?: string;
-    description?: string;
-}
-
-export interface DashboardData {
-    rows: DashboardRow[];
-    accounts: string[];
-    user_transactions?: UserTransaction[];
 }
 
 function AGTable({ dashboardData }: { dashboardData: DashboardData }) {
