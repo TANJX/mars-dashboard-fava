@@ -126,6 +126,11 @@ class MarsDashboard(FavaExtensionBase):
                     existing["transaction"] = transaction["transaction"]
                 if "description" in transaction:
                     existing["description"] = transaction["description"]
+                if "format" in transaction:
+                    # Merge format data
+                    if "format" not in existing:
+                        existing["format"] = {}
+                    existing["format"].update(transaction["format"])
 
                 # Ensure both transaction and description fields exist
                 if "transaction" not in existing:
@@ -133,7 +138,7 @@ class MarsDashboard(FavaExtensionBase):
                 if "description" not in existing:
                     existing["description"] = ""
 
-                if existing["transaction"] == "" and existing["description"] == "":
+                if existing["transaction"] == "" and existing["description"] == "" and not existing.get("format"):
                     del transaction_map[key]
 
         # Convert back to list
@@ -157,8 +162,23 @@ class MarsDashboard(FavaExtensionBase):
     @extension_endpoint(methods=["POST"])
     def save_user_transaction(self):
         data = request.json
-        print(data)
-        # g.ledger.
+        # Validate the format structure if present
+        if "format" in data:
+            if not isinstance(data["format"], dict):
+                return json.dumps({"status": "error", "message": "Invalid format structure"})
+            
+            valid_fields = ["transaction", "description"]
+            valid_formats = ["bold", "italic"]
+            
+            for field, format_data in data["format"].items():
+                if field not in valid_fields:
+                    return json.dumps({"status": "error", "message": f"Invalid field {field}"})
+                if not isinstance(format_data, dict):
+                    return json.dumps({"status": "error", "message": f"Invalid format data for {field}"})
+                for format_type in format_data:
+                    if format_type not in valid_formats:
+                        return json.dumps({"status": "error", "message": f"Invalid format type {format_type}"})
+        
         file_path = os.path.join(
             os.path.dirname(g.ledger.beancount_file_path), "user_transactions.jsonl"
         )

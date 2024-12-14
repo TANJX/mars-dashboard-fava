@@ -4,9 +4,21 @@ import "./index.css";
 import App from "./App.tsx";
 
 import { ModuleRegistry } from "ag-grid-community";
-import { ClientSideRowModelModule, ValidationModule, TextEditorModule, CellStyleModule } from "ag-grid-community";
+import {
+    ClientSideRowModelModule,
+    ValidationModule,
+    TextEditorModule,
+    CellStyleModule,
+    CustomEditorModule,
+} from "ag-grid-community";
 
-ModuleRegistry.registerModules([ClientSideRowModelModule, ValidationModule, TextEditorModule, CellStyleModule]);
+ModuleRegistry.registerModules([
+    ClientSideRowModelModule,
+    ValidationModule,
+    TextEditorModule,
+    CellStyleModule,
+    CustomEditorModule,
+]);
 
 declare global {
     interface Window {

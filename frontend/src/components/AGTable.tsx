@@ -191,7 +191,7 @@ function AGTable({ dashboardData }: { dashboardData: DashboardData }) {
     }, [dashboardData]);
 
     // Update the userEdits tracking structure
-    const handleEditUpdate = (date: string, account: string, field: string, value: string) => {
+    const handleEditUpdate = (date: string, account: string, field: string, value: string, format?: { bold?: boolean, italic?: boolean }) => {
         console.log("handleEditUpdate called", {date, account, field, value});
         setUserEdits(prev => {
             const newEdits = new Map(prev);
@@ -206,15 +206,23 @@ function AGTable({ dashboardData }: { dashboardData: DashboardData }) {
                 value,
                 timestamp: new Date().toISOString()
             });
+            if (format) {
+                accountEdits.get(account).set('format', {
+                    [field]: format
+                });
+            }
             return newEdits;
         });
         // send an async request to save the transaction
         fetch(`http://127.0.0.1:5000/mars-universe-bank/extension/MarsDashboard/save_user_transaction`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ date, account, transaction: field === "transaction" ? value || "" : undefined, description: field === "description" ? value || "" : undefined }),
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+                date, 
+                account, 
+                [field]: value,
+                format: format ? { [field]: format } : undefined 
+            }),
         });
     };
 
@@ -224,6 +232,34 @@ function AGTable({ dashboardData }: { dashboardData: DashboardData }) {
         return userEdits.has(date) && 
                userEdits.get(date).has(account) && 
                userEdits.get(date).get(account).has(field);
+    };
+
+    // Cell renderer for formatted cells
+    const FormattedCellRenderer = (params: any) => {
+        const date = params.data?.date;
+        const account = params.column.colDef.field?.split('.')[0];
+        const field = params.column.colDef.cellEditorParams?.field;
+        
+        // Get formatting if it exists
+        let format;
+        if (date && userEdits.has(date) && 
+            userEdits.get(date)?.has(account) && 
+            userEdits.get(date)?.get(account)?.has('format')) {
+            format = userEdits.get(date)?.get(account)?.get('format')?.[field];
+        }
+
+        const style: React.CSSProperties = {
+            textAlign: field === 'transaction' ? 'right' : 'left',
+            color: isPastDate(date) ? "#D1D5DB" : 
+                  isUserEdited(date, account, field) ? "blue" : "inherit",
+            fontWeight: format?.bold ? 'bold' : 'normal',
+            fontStyle: format?.italic ? 'italic' : 'normal'
+        };
+
+        const value = field === 'transaction' ? 
+            formulaFormatter(params.value) : params.value;
+
+        return <span style={style}>{value}</span>;
     };
 
     // Column definitions
@@ -300,7 +336,6 @@ function AGTable({ dashboardData }: { dashboardData: DashboardData }) {
                             const rowIndex = rowData.findIndex((row) => row.date === event.data.date);
                             
                             if (rowIndex === -1) {
-                                console.log(rowData);
                                 console.warn('Row not found for edit');
                                 return;
                             }
