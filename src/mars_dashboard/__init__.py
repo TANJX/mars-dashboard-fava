@@ -62,7 +62,7 @@ class MarsDashboard(FavaExtensionBase):
                 entries = account_entries[account]
                 row[account] = {
                     "balance": Decimal("0"),
-                    "transaction": Decimal("0"),
+                    "transaction": [],
                     "description": set(),
                 }
                 for entry_date, amount in entries:
@@ -85,7 +85,9 @@ class MarsDashboard(FavaExtensionBase):
             if index < 0 or index >= len(rows):
                 continue
             row = rows[index]
-            row[entry.account]["transaction"] += entry.position.units.number
+            if "transaction" not in row[entry.account]:
+                row[entry.account]["transaction"] = []
+            row[entry.account]["transaction"].append(entry.position.units.number)
             # get the first two words of payee
             words = entry.payee.split()[:2] if entry.payee else [""]
             if len(words) >= 2:
@@ -97,9 +99,21 @@ class MarsDashboard(FavaExtensionBase):
         for row in rows:
             for account in accounts:
                 row[account]["balance"] = self.formatCurrency(row[account]["balance"])
-                row[account]["transaction"] = self.formatCurrency(
-                    row[account]["transaction"], hideZero=True
-                )
+                if len(row[account]["transaction"]) == 1:
+                    row[account]["transaction"] = self.formatCurrency(
+                        row[account]["transaction"][0], hideZero=True
+                    )
+                elif len(row[account]["transaction"]) > 1:
+                    # join the transaction as formula "=123+123-123"
+                    combined = "="
+                    for n in row[account]["transaction"]:
+                        if float(n) < 0:
+                            combined += f"{n}"
+                        else:
+                            combined += f"+{n}"
+                    row[account]["transaction"] = combined
+                else:
+                    row[account]["transaction"] = ""
                 row[account]["description"] = ", ".join(row[account]["description"])
 
         print(f"Fetched {len(rows)} rows for {start_date} to {end_date}")
