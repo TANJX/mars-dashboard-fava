@@ -14,6 +14,12 @@ const myTheme = themeBalham.withParams({
     columnBorder: { color: '#f0f0f0' },
 });
 
+const isPastDate = (date: string | undefined) => {
+    if (!date) return false;
+    const today = new Date().toISOString().split("T")[0];
+    return date < today;
+};
+
 function currencyFormatter(value: string, currency = "$") {
     if (!value || value === "" || value === "0") {
         return "";
@@ -281,7 +287,7 @@ function AGTable({ dashboardData }: { dashboardData: DashboardData }) {
                 pinned: "left" as const,
                 width: 90,
                 valueFormatter: (params: ValueFormatterParams<DashboardRow>) => {
-                    const date = new Date(params.value);
+                    const date = new Date(params.value + 'T00:00');
                     const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
                     return `${days[date.getDay()]} ${(date.getMonth() + 1)}/${date.getDate()}`;
                 },
@@ -341,8 +347,8 @@ function AGTable({ dashboardData }: { dashboardData: DashboardData }) {
                         valueFormatter: (params: ValueFormatterParams<DashboardRow>) => formulaFormatter(params.value),
                         cellStyle: (params: CellClassParams<DashboardRow>) => ({
                             textAlign: "right",
-                            color: isPastDate(params.data?.date) ? "#D1D5DB" :
-                                isUserEdited(params.data?.date, account, 'transaction') ? "blue" : "inherit",
+                            color: isUserEdited(params.data?.date, account, 'transaction') ? "blue" :
+                                isPastDate(params.data?.date) ? "#D1D5DB" : "inherit",
                         }),
                         onCellValueChanged: (event: NewValueParams<DashboardRow, string>) => {
                             const field = event.column.getColDef().field;
@@ -376,8 +382,8 @@ function AGTable({ dashboardData }: { dashboardData: DashboardData }) {
                         width: 120,
                         cellStyle: (params: CellClassParams<DashboardRow, string>) => ({
                             textAlign: "left",
-                            color: isPastDate(params.data?.date) ? "#D1D5DB" :
-                                isUserEdited(params.data?.date, account, 'description') ? "blue" : "inherit",
+                            color: isUserEdited(params.data?.date, account, 'description') ? "blue" :
+                                isPastDate(params.data?.date) ? "#D1D5DB" : "inherit",
                         }),
                         onCellValueChanged: (event: NewValueParams<DashboardRow, string>) => {
                             handleEditUpdate(
@@ -395,11 +401,6 @@ function AGTable({ dashboardData }: { dashboardData: DashboardData }) {
         return columns;
     }, [dashboardData.accounts, dashboardData.rows, userEdits]);
 
-    const isPastDate = (date: string | undefined) => {
-        if (!date) return false;
-        const today = new Date().toISOString().split("T")[0];
-        return date < today;
-    };
 
     // Debug memo to track edits (optional)
     useMemo(() => {
