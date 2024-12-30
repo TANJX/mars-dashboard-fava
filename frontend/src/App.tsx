@@ -1,6 +1,8 @@
 import { useEffect, useState, useCallback } from 'react';
 // import MainTable from './components/MainTable';
 import AGTable from './components/AGTable';
+import { AccountData, DashboardRow } from './types/DashboardData';
+import { parseValue } from './utils/data';
 
 function App() {
   const [marsDashboardData, setMarsDashboardData] = useState({ accounts: [], rows: [] });
@@ -38,14 +40,17 @@ function App() {
 
       const rawData = await response.text();
       const data = JSON.parse(rawData);
-      
+
       // add an extra month to the data
-      const lastRow = structuredClone(data.rows[data.rows.length - 1]);
+      const lastRow: DashboardRow = structuredClone(data.rows[data.rows.length - 1]);
       // remove transaction values
       Object.keys(lastRow).forEach(key => {
         if (key !== 'date') {
-          lastRow[key].transaction = '';
-          lastRow[key].description = '';
+          const accountData = lastRow[key] as AccountData;
+          // calculate the balance
+          accountData.balance = parseValue(accountData.balance) + parseValue(accountData.transaction || '0');
+          accountData.transaction = '';
+          accountData.description = '';
         }
       });
       const dateObj = new Date(lastRow.date);

@@ -2,6 +2,7 @@ import { AgGridReact } from "ag-grid-react";
 import { useMemo, useState, useEffect } from "react";
 import { CellClassParams, ColDef, NewValueParams, themeBalham, ValueFormatterParams } from "ag-grid-community";
 import { DashboardData, DashboardRow, AccountData } from "../types/DashboardData";
+import { parseValue, currencyFormatter, formulaFormatter, isPastDate } from '../utils/data';
 
 console.log("Rendering AGTable component");
 
@@ -13,46 +14,6 @@ const myTheme = themeBalham.withParams({
     // rowBorder: { width: 1, color: '#9696C8' },
     columnBorder: { color: '#f0f0f0' },
 });
-
-const isPastDate = (date: string | undefined) => {
-    if (!date) return false;
-    const today = new Date().toISOString().split("T")[0];
-    return date < today;
-};
-
-function currencyFormatter(value: string, currency = "$") {
-    if (!value || value === "" || value === "0") {
-        return "";
-    }
-    const num = parseFloat(value);
-    return isNaN(num) ? "" : (num < 0 ? "-" + currency + Math.abs(num).toFixed(2) : currency + num.toFixed(2));
-}
-
-function evaluateFormula(formula: string) {
-    try {
-        const result = eval(formula.slice(1));
-        return isNaN(result) ? 0 : result;
-    } catch (error) {
-        console.warn('Formula evaluation error:', error);
-        return 0;
-    }
-}
-
-function parseValue(value: string) {
-    if (!value || value === "") return 0;
-
-    if (typeof value === 'string' && value.startsWith('=')) {
-        return evaluateFormula(value);
-    }
-
-    const num = parseFloat(value);
-    return isNaN(num) ? 0 : num;
-}
-
-function formulaFormatter(value: string) {
-    if (!value || value === "") return "";
-    return currencyFormatter(parseValue(value));
-}
 
 function AGTable({ dashboardData }: { dashboardData: DashboardData }) {
     console.log(`AGTable render count: ${++renderCount}`);
