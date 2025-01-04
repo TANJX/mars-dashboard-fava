@@ -16,22 +16,29 @@ const myTheme = themeBalham.withParams({
 });
 
 function AGTable({ dashboardData }: { dashboardData: DashboardData }) {
-    console.log(`AGTable render count: ${++renderCount}`);
-    console.time('AGTable render');
+    // console.log(`AGTable render count: ${++renderCount}`);
+    // console.time('AGTable render');
 
     useEffect(() => {
-        console.timeEnd('AGTable render');
+        // console.timeEnd('AGTable render');
         return () => console.log('AGTable unmounting');
     });
 
     // Add this helper function inside AGTable component
     const recalculateBalances = (rowData: DashboardRow[], account: string, startIndex: number) => {
-        console.log("recalculateBalances called", { account, startIndex });
-        console.time('recalculateBalances');
+        console.log("recalculateBalances called", { account, startIndex, rowData });
+        // console.time('recalculateBalances');
         const newRowData = [...rowData];
-        const prevAccountData = newRowData[startIndex - 1][account] as AccountData;
-        let prevBalance = startIndex > 0 ? parseValue(prevAccountData.balance) : 0;
-        let prevTransaction = startIndex > 0 ? parseValue(prevAccountData.transaction || '0') : 0;
+        let prevBalance;
+        let prevTransaction;
+        if (startIndex > 0) {
+            const prevAccountData = newRowData[startIndex - 1][account] as AccountData;
+            prevBalance = startIndex > 0 ? parseValue(prevAccountData.balance) : 0;
+            prevTransaction = startIndex > 0 ? parseValue(prevAccountData.transaction || '0') : 0;
+        } else {
+            prevBalance = parseValue((rowData[startIndex][account] as AccountData).balance);
+            prevTransaction = 0;
+        }
 
         for (let i = startIndex; i < newRowData.length; i++) {
             // Calculate new balance based on previous balance and previous transaction
@@ -42,14 +49,14 @@ function AGTable({ dashboardData }: { dashboardData: DashboardData }) {
             prevBalance = parseValue(accountData.balance);
             prevTransaction = parseValue(accountData.transaction || '0');
         }
-        console.timeEnd('recalculateBalances');
+        // console.timeEnd('recalculateBalances');
         return newRowData;
     };
 
     // Initialize rowData with user transactions applied
     const [rowData, setRowData] = useState(() => {
-        console.log("Initializing rowData");
-        console.time('rowData initialization');
+        // console.log("Initializing rowData");
+        // console.time('rowData initialization');
         const updatedRows = [...dashboardData.rows];
 
         if (dashboardData.user_transactions) {
@@ -74,14 +81,14 @@ function AGTable({ dashboardData }: { dashboardData: DashboardData }) {
                 }
             });
         }
-        console.timeEnd('rowData initialization');
+        // console.timeEnd('rowData initialization');
         return updatedRows;
     });
 
     // Initialize userEdits with data from dashboardData.user_transactions
     const [userEdits, setUserEdits] = useState(() => {
-        console.log("Initializing userEdits");
-        console.time('userEdits initialization');
+        // console.log("Initializing userEdits");
+        // console.time('userEdits initialization');
         const editsMap = new Map();
 
         // If user_transactions exists, populate the userEdits map
@@ -113,14 +120,14 @@ function AGTable({ dashboardData }: { dashboardData: DashboardData }) {
                 }
             });
         }
-        console.timeEnd('userEdits initialization');
+        // console.timeEnd('userEdits initialization');
         return editsMap;
     });
 
     // Validate data integrity
     useMemo(() => {
-        console.log("Running data integrity validation");
-        console.time('data validation');
+        // console.log("Running data integrity validation");
+        // console.time('data validation');
         if (!dashboardData.rows || dashboardData.rows.length === 0) return;
 
         // For each account
@@ -161,7 +168,7 @@ function AGTable({ dashboardData }: { dashboardData: DashboardData }) {
                 prevBalance = balance;
             });
         });
-        console.timeEnd('data validation');
+        // console.timeEnd('data validation');
     }, [dashboardData]);
 
     // Update the userEdits tracking structure
