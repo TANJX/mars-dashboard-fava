@@ -12,3 +12,5 @@ wheels/
 # react build files
 src/mars_dashboard/MarsDashboard.js
 src/mars_dashboard/templates/style.css
+
+.DS_Store

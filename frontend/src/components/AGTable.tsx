@@ -1,12 +1,12 @@
 import { AgGridReact } from "ag-grid-react";
-import { useMemo, useState, useEffect } from "react";
-import { CellClassParams, ColDef, NewValueParams, themeBalham, ValueFormatterParams } from "ag-grid-community";
-import { DashboardData, DashboardRow, AccountData } from "../types/DashboardData";
+import { useMemo, useState, useEffect, useRef } from "react";
+import { CellClassParams, CellClickedEvent, ColDef, NewValueParams, themeBalham, ValueFormatterParams } from "ag-grid-community";
+import { DashboardData, DashboardRow, AccountData, UserTransaction } from "../types/DashboardData";
 import { parseValue, currencyFormatter, formulaFormatter, isPastDate } from '../utils/data';
+import CellFormatMenu from './CellFormatMenu';
 
 console.log("Rendering AGTable component");
 
-let renderCount = 0;
 
 const myTheme = themeBalham.withParams({
     wrapperBorder: false,
@@ -15,19 +15,26 @@ const myTheme = themeBalham.withParams({
     columnBorder: { color: '#f0f0f0' },
 });
 
-function AGTable({ dashboardData }: { dashboardData: DashboardData }) {
-    // console.log(`AGTable render count: ${++renderCount}`);
-    // console.time('AGTable render');
+interface MenuPosition {
+    x: number;
+    y: number;
+}
 
+interface ActiveCell {
+    date: string;
+    account: string;
+    field: "transaction" | "description";
+}
+
+function AGTable({ dashboardData }: { dashboardData: DashboardData }) {
     useEffect(() => {
-        // console.timeEnd('AGTable render');
         return () => console.log('AGTable unmounting');
     });
 
+    const gridRef = useRef<HTMLDivElement>(null);
+
     // Add this helper function inside AGTable component
     const recalculateBalances = (rowData: DashboardRow[], account: string, startIndex: number) => {
-        console.log("recalculateBalances called", { account, startIndex, rowData });
-        // console.time('recalculateBalances');
         const newRowData = [...rowData];
         let prevBalance;
         let prevTransaction;
@@ -49,14 +56,11 @@ function AGTable({ dashboardData }: { dashboardData: DashboardData }) {
             prevBalance = parseValue(accountData.balance);
             prevTransaction = parseValue(accountData.transaction || '0');
         }
-        // console.timeEnd('recalculateBalances');
         return newRowData;
     };
 
     // Initialize rowData with user transactions applied
     const [rowData, setRowData] = useState(() => {
-        // console.log("Initializing rowData");
-        // console.time('rowData initialization');
         const updatedRows = [...dashboardData.rows];
 
         if (dashboardData.user_transactions) {
@@ -81,53 +85,17 @@ function AGTable({ dashboardData }: { dashboardData: DashboardData }) {
                 }
             });
         }
-        // console.timeEnd('rowData initialization');
         return updatedRows;
     });
 
     // Initialize userEdits with data from dashboardData.user_transactions
-    const [userEdits, setUserEdits] = useState(() => {
-        // console.log("Initializing userEdits");
-        // console.time('userEdits initialization');
-        const editsMap = new Map();
-
-        // If user_transactions exists, populate the userEdits map
-        if (dashboardData.user_transactions) {
-            dashboardData.user_transactions.forEach(transaction => {
-                const { date, account, transaction: transactionValue, description } = transaction;
-
-                // Create nested maps following existing structure
-                if (!editsMap.has(date)) {
-                    editsMap.set(date, new Map());
-                }
-                if (!editsMap.get(date).has(account)) {
-                    editsMap.get(date).set(account, new Map());
-                }
-
-                // Add transaction and description if they exist
-                const accountEdits = editsMap.get(date).get(account);
-                if (transactionValue) {
-                    accountEdits.set('transaction', {
-                        value: transactionValue,
-                        timestamp: new Date().toISOString()
-                    });
-                }
-                if (description) {
-                    accountEdits.set('description', {
-                        value: description,
-                        timestamp: new Date().toISOString()
-                    });
-                }
-            });
-        }
-        // console.timeEnd('userEdits initialization');
-        return editsMap;
+    const [userEdits, setUserEdits] = useState<UserTransaction[]>(() => {
+        const userTransactions = JSON.parse(JSON.stringify(dashboardData.user_transactions));
+        return userTransactions;
     });
 
     // Validate data integrity
     useMemo(() => {
-        // console.log("Running data integrity validation");
-        // console.time('data validation');
         if (!dashboardData.rows || dashboardData.rows.length === 0) return;
 
         // For each account
@@ -168,80 +136,107 @@ function AGTable({ dashboardData }: { dashboardData: DashboardData }) {
                 prevBalance = balance;
             });
         });
-        // console.timeEnd('data validation');
     }, [dashboardData]);
 
     // Update the userEdits tracking structure
-    const handleEditUpdate = (date: string, account: string, field: string, value: string, format?: { bold?: boolean, italic?: boolean }) => {
+    const handleEditUpdate = (date: string, account: string, field: "transaction" | "description", value: string) => {
         console.log("handleEditUpdate called", { date, account, field, value });
+        const newUserEdit: UserTransaction = {
+            date,
+            account,
+            [field]: value,
+        };
         setUserEdits(prev => {
-            const newEdits = new Map(prev);
-            if (!newEdits.has(date)) {
-                newEdits.set(date, new Map());
-            }
-            const accountEdits = newEdits.get(date);
-            if (!accountEdits.has(account)) {
-                accountEdits.set(account, new Map());
-            }
-            accountEdits.get(account).set(field, {
-                value,
-                timestamp: new Date().toISOString()
-            });
-            if (format) {
-                accountEdits.get(account).set('format', {
-                    [field]: format
-                });
-            }
+            const newEdits = [...prev];
+            newEdits.push(newUserEdit);
             return newEdits;
         });
         // send an async request to save the transaction
         fetch(`http://127.0.0.1:5000/mars-universe-bank/extension/MarsDashboard/save_user_transaction`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                date,
-                account,
-                [field]: value,
-                format: format ? { [field]: format } : undefined
-            }),
+            body: JSON.stringify(newUserEdit),
+        });
+    };
+
+    const handleFormatUpdate = (date: string, account: string, field: "transaction" | "description", bold?: boolean, italic?: boolean) => {
+        console.log("handleFormatUpdate called", { date, account, field, bold, italic });
+        const newUserEdit: UserTransaction = {
+            date,
+            account,
+            format: {
+                [field]: {
+                    bold,
+                    italic
+                }
+            }
+        };
+        setUserEdits(prev => {
+            const newEdits = [...prev];
+            newEdits.push(newUserEdit);
+            return newEdits;
+        });
+        // send an async request to save the format
+        fetch(`http://127.0.0.1:5000/mars-universe-bank/extension/MarsDashboard/save_user_transaction`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(newUserEdit),
         });
     };
 
     // Helper to check if a cell was edited by user
-    const isUserEdited = (date: string | undefined, account: string, field: string) => {
+    const isUserEdited = (date: string | undefined, account: string, field: "transaction" | "description") => {
         if (!date) return false;
-        return userEdits.has(date) &&
-            userEdits.get(date).has(account) &&
-            userEdits.get(date).get(account).has(field);
+        return userEdits.some(transaction => transaction.date === date && transaction.account === account && transaction[field]);
     };
 
-    // Cell renderer for formatted cells
-    // const FormattedCellRenderer = (params: any) => {
-    //     const date = params.data?.date;
-    //     const account = params.column.colDef.field?.split('.')[0];
-    //     const field = params.column.colDef.cellEditorParams?.field;
+    const isUserEditedFormat = (date: string | undefined, account: string, field: "transaction" | "description", format: "bold" | "italic") => {
+        if (!date) return false;
+        // find the last transaction for this account and field
+        for (let i = userEdits.length - 1; i >= 0; i--) {
+            const transaction = userEdits[i];
+            if (transaction.date === date && transaction.account === account && transaction.format?.[field]?.[format] !== undefined) {
+                return transaction.format[field][format];
+            }
+        }
+        return false;
+    };
 
-    //     // Get formatting if it exists
-    //     let format;
-    //     if (date && userEdits.has(date) && 
-    //         userEdits.get(date)?.has(account) && 
-    //         userEdits.get(date)?.get(account)?.has('format')) {
-    //         format = userEdits.get(date)?.get(account)?.get('format')?.[field];
-    //     }
+    const [menuPosition, setMenuPosition] = useState<MenuPosition | null>(null);
+    const [activeCell, setActiveCell] = useState<ActiveCell | null>(null);
 
-    //     const style: React.CSSProperties = {
-    //         textAlign: field === 'transaction' ? 'right' : 'left',
-    //         color: isPastDate(date) ? "#D1D5DB" : 
-    //               isUserEdited(date, account, field) ? "blue" : "inherit",
-    //         fontWeight: format?.bold ? 'bold' : 'normal',
-    //         fontStyle: format?.italic ? 'italic' : 'normal'
-    //     };
+    const handleCellClick = (event: CellClickedEvent) => {
+        if (!gridRef.current) return;
 
-    //     const value = field === 'transaction' ? 
-    //         formulaFormatter(params.value) : params.value;
+        const field = event.column.getColDef().field;
+        if (!field || !event.data?.date) return;
 
-    //     return <span style={style}>{value}</span>;
-    // };
+        const [account, fieldType] = field.split('.');
+        if (fieldType !== 'transaction' && fieldType !== 'description') return;
+
+        // Get cell element position
+        const cellElement = event.event?.target as HTMLElement;
+        if (!cellElement) return;
+
+        const rect = cellElement.getBoundingClientRect();
+        const gridRect = gridRef.current.getBoundingClientRect();
+        
+        setMenuPosition({
+            x: rect.right - gridRect.left,
+            y: rect.top + (rect.height / 2) - gridRect.top
+        });
+        
+        setActiveCell({
+            date: event.data.date,
+            account,
+            field: fieldType
+        });
+    };
+
+    const closeMenu = () => {
+        setMenuPosition(null);
+        setActiveCell(null);
+    };
 
     // Column definitions
     const columnDefs = useMemo<ColDef<DashboardRow, any>[]>(() => {
@@ -298,7 +293,7 @@ function AGTable({ dashboardData }: { dashboardData: DashboardData }) {
                         headerName: accountShort,
                         field: `${account}.balance`,
                         headerClass: `header-bank-${accountClass}`,
-                        width: 80,
+                        width: 90,
                         valueFormatter: (params: { value: string }) => currencyFormatter(params.value),
                         cellStyle: (params: CellClassParams<DashboardRow>) => ({
                             textAlign: "right",
@@ -311,13 +306,18 @@ function AGTable({ dashboardData }: { dashboardData: DashboardData }) {
                         field: `${account}.transaction`,
                         editable: true,
                         headerClass: `header-bank-${accountClass}`,
-                        width: 80,
+                        width: 90,
                         valueFormatter: (params: ValueFormatterParams<DashboardRow>) => formulaFormatter(params.value),
                         cellStyle: (params: CellClassParams<DashboardRow>) => ({
                             textAlign: "right",
                             color: isUserEdited(params.data?.date, account, 'transaction') ? "blue" :
                                 isPastDate(params.data?.date) ? "#D1D5DB" : "inherit",
+                            fontWeight: isUserEditedFormat(params.data?.date, account, 'transaction', 'bold') ? "bold" : "normal",
+                            fontStyle: isUserEditedFormat(params.data?.date, account, 'transaction', 'italic') ? "italic" : "normal",
                         }),
+                        onCellClicked: (event: CellClickedEvent) => {
+                            handleCellClick(event);
+                        },
                         onCellValueChanged: (event: NewValueParams<DashboardRow, string>) => {
                             const field = event.column.getColDef().field;
                             const account = field?.split(".")[0] ?? "";
@@ -352,7 +352,12 @@ function AGTable({ dashboardData }: { dashboardData: DashboardData }) {
                             textAlign: "left",
                             color: isUserEdited(params.data?.date, account, 'description') ? "blue" :
                                 isPastDate(params.data?.date) ? "#D1D5DB" : "inherit",
+                            fontWeight: isUserEditedFormat(params.data?.date, account, 'description', 'bold') ? "bold" : "normal",
+                            fontStyle: isUserEditedFormat(params.data?.date, account, 'description', 'italic') ? "italic" : "normal",
                         }),
+                        onCellClicked: (event: CellClickedEvent) => {
+                            handleCellClick(event);
+                        },
                         onCellValueChanged: (event: NewValueParams<DashboardRow, string>) => {
                             handleEditUpdate(
                                 event.data.date,
@@ -372,13 +377,44 @@ function AGTable({ dashboardData }: { dashboardData: DashboardData }) {
 
     // Debug memo to track edits (optional)
     useMemo(() => {
-        if (userEdits.size > 0) {
-            console.log('User Edits Structure:', Object.fromEntries(userEdits));
+        if (userEdits.length > 0) {
+            console.log('User Edits Structure:', userEdits);
         }
     }, [userEdits]);
 
     return (
-        <div className="ag-theme-alpine" style={{ height: "calc(100vh - 52px)", width: "100%", overflow: "hidden" }}>
+        <div className="ag-theme-alpine relative" style={{ height: "calc(100vh - 52px)", width: "100%", overflow: "hidden" }} ref={gridRef}>
+            <CellFormatMenu
+                position={menuPosition}
+                isVisible={!!menuPosition && !!activeCell}
+                onClose={closeMenu}
+                isBold={activeCell ? isUserEditedFormat(activeCell.date, activeCell.account, activeCell.field, 'bold') : false}
+                isItalic={activeCell ? isUserEditedFormat(activeCell.date, activeCell.account, activeCell.field, 'italic') : false}
+                onToggleBold={() => {
+                    if (activeCell) {
+                        const currentState = isUserEditedFormat(activeCell.date, activeCell.account, activeCell.field, 'bold');
+                        handleFormatUpdate(
+                            activeCell.date,
+                            activeCell.account,
+                            activeCell.field,
+                            !currentState,
+                            isUserEditedFormat(activeCell.date, activeCell.account, activeCell.field, 'italic')
+                        );
+                    }
+                }}
+                onToggleItalic={() => {
+                    if (activeCell) {
+                        const currentState = isUserEditedFormat(activeCell.date, activeCell.account, activeCell.field, 'italic');
+                        handleFormatUpdate(
+                            activeCell.date,
+                            activeCell.account,
+                            activeCell.field,
+                            isUserEditedFormat(activeCell.date, activeCell.account, activeCell.field, 'bold'),
+                            !currentState
+                        );
+                    }
+                }}
+            />
             <AgGridReact
                 columnDefs={columnDefs}
                 rowData={rowData}
