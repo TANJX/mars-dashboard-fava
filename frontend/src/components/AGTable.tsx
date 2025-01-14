@@ -258,7 +258,7 @@ function AGTable({ dashboardData }: { dashboardData: DashboardData }) {
                     const today = new Date().toISOString().split("T")[0];
                     const isToday = params.value === today;
                     const isPast = params.value < today;
-                    const isWeekend = [0, 6].includes(new Date(params.value).getDay());
+                    const isWeekend = [0, 6].includes(new Date(params.value + 'T00:00').getDay());
 
                     return {
                         textAlign: "right",
