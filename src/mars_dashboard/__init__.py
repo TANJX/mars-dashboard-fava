@@ -22,6 +22,26 @@ class MarsDashboard(FavaExtensionBase):
     has_js_module = True
 
     @extension_endpoint
+    def get_balance(self):
+        account = request.args.get("account")
+        query = """SELECT account WHERE (account ~ "Assets:Checking" OR account ~ "Assets:Saving" OR account ~ "Liabilities:Credit") AND NOT close_date(account) GROUP BY account"""
+        _, rrows = self.exec_query(query)
+        # get all accounts that match the query
+        accounts = [row.account for row in rrows if account in row.account.lower()]
+        results = {}
+        for account in accounts:
+            # get the last entry where the date is today or earlier
+            entries = self.get_account_entries(account)
+            current_date = datetime.datetime.now().date()
+            last_entry = next((entry for entry in reversed(entries) if entry[0] <= current_date), None)
+            if last_entry:
+                balance = float(last_entry[1])
+            else:
+                balance = 0
+            results[account] = balance
+        return json.dumps(results)
+
+    @extension_endpoint
     def get_data(self):
 
         start_date = request.args.get("start_date")
@@ -152,7 +172,11 @@ class MarsDashboard(FavaExtensionBase):
                 if "description" not in existing:
                     existing["description"] = ""
 
-                if existing["transaction"] == "" and existing["description"] == "" and not existing.get("format"):
+                if (
+                    existing["transaction"] == ""
+                    and existing["description"] == ""
+                    and not existing.get("format")
+                ):
                     del transaction_map[key]
 
         # Convert back to list
@@ -179,20 +203,34 @@ class MarsDashboard(FavaExtensionBase):
         # Validate the format structure if present
         if "format" in data:
             if not isinstance(data["format"], dict):
-                return json.dumps({"status": "error", "message": "Invalid format structure"})
-            
+                return json.dumps(
+                    {"status": "error", "message": "Invalid format structure"}
+                )
+
             valid_fields = ["transaction", "description"]
             valid_formats = ["bold", "italic"]
-            
+
             for field, format_data in data["format"].items():
                 if field not in valid_fields:
-                    return json.dumps({"status": "error", "message": f"Invalid field {field}"})
+                    return json.dumps(
+                        {"status": "error", "message": f"Invalid field {field}"}
+                    )
                 if not isinstance(format_data, dict):
-                    return json.dumps({"status": "error", "message": f"Invalid format data for {field}"})
+                    return json.dumps(
+                        {
+                            "status": "error",
+                            "message": f"Invalid format data for {field}",
+                        }
+                    )
                 for format_type in format_data:
                     if format_type not in valid_formats:
-                        return json.dumps({"status": "error", "message": f"Invalid format type {format_type}"})
-        
+                        return json.dumps(
+                            {
+                                "status": "error",
+                                "message": f"Invalid format type {format_type}",
+                            }
+                        )
+
         file_path = os.path.join(
             os.path.dirname(g.ledger.beancount_file_path), "user_transactions.jsonl"
         )
