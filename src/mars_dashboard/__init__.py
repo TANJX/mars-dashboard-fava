@@ -32,7 +32,7 @@ class MarsDashboard(FavaExtensionBase):
         for account in accounts:
             # get the last entry where the date is today or earlier
             entries = self.get_account_entries(account)
-            current_date = datetime.datetime.now().date()
+            current_date = datetime.datetime.now().date() + datetime.timedelta(days=1)
             last_entry = next((entry for entry in reversed(entries) if entry[0] <= current_date), None)
             if last_entry:
                 balance = float(last_entry[1])
