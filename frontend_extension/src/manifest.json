@@ -13,7 +13,9 @@
     "*://*.chase.com/*",
     "*://*.bankofamerica.com/*",
     "*://*.wellsfargo.com/*",
-    "*://*.discover.com/*"
+    "*://*.discover.com/*",
+    "*://*.robinhood.com/*",
+    "*://*.future.green/*"
   ],
   "content_scripts": [
     {
@@ -22,9 +24,11 @@
         "*://*.chase.com/*",
         "*://*.bankofamerica.com/*",
         "*://*.wellsfargo.com/*",
-        "*://*.discover.com/*"
+        "*://*.discover.com/*",
+        "*://*.robinhood.com/*",
+        "*://*.future.green/*"
       ],
-      "js": ["index.js"]
+      "js": ["content.js"]
     }
   ]
 } 

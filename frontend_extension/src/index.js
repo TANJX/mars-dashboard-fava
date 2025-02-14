@@ -1,4 +1,8 @@
-// Add this at the top of your existing code
+import { findTextInPage } from './utils.js';
+import { extractAmexChecking } from './extractors/amex.js';
+import { extractFuture } from './extractors/future.js';
+import { extractRobinhood } from './extractors/robinhood.js';
+
 const API_BASE_URL = 'http://127.0.0.1:5000';
 
 // Create and inject styles
@@ -61,6 +65,17 @@ style.textContent = `
   .credit-balance-amount.positive {
     color: #28a745;
   }
+  .credit-balance-item button {
+    width: 100%;
+    text-align: center;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    padding: 5px;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+  
 `;
 document.head.appendChild(style);
 
@@ -68,19 +83,19 @@ document.head.appendChild(style);
 function createBalanceDialog(account) {
   const dialog = document.createElement('div');
   dialog.className = 'credit-balance-dialog';
-  
+
   const header = document.createElement('div');
   header.className = 'credit-balance-header';
-  
+
   const title = document.createElement('h3');
   title.textContent = 'Account Balances';
   title.style.margin = '0';
-  
+
   const closeButton = document.createElement('button');
   closeButton.className = 'credit-balance-close';
   closeButton.innerHTML = '×';
   closeButton.onclick = () => dialog.remove();
-  
+
   header.appendChild(title);
   header.appendChild(closeButton);
   dialog.appendChild(header);
@@ -100,28 +115,70 @@ function createBalanceDialog(account) {
       Object.entries(data).forEach(([account, balance]) => {
         const item = document.createElement('div');
         item.className = 'credit-balance-item';
-        
+
         // Extract account name after last colon
         const accountParts = account.split(':');
         const accountName = accountParts.slice(-2).join(':');
-        
+
         // Format balance as currency
         const absBalance = Math.abs(balance);
         const formattedBalance = new Intl.NumberFormat('en-US', {
           style: 'currency',
           currency: 'USD'
         }).format(absBalance);
-        
+
         item.innerHTML = `
           ${accountName}
           <span class="credit-balance-amount ${balance < 0 ? 'negative' : 'positive'}">
             ${balance < 0 ? '-' : ''}${formattedBalance}
           </span>
         `;
-        
+
         dialog.appendChild(item);
         document.body.appendChild(dialog);
       });
+
+      if (findTextInPage('American Express Rewards Checking')) {
+        const item = document.createElement('div');
+        item.className = 'credit-balance-item';
+        const extractButton = document.createElement('button');
+        extractButton.textContent = 'Extract';
+        extractButton.className = 'credit-balance-extract';
+        extractButton.onclick = () => {
+          extractAmexChecking();
+        };
+        item.appendChild(extractButton);
+        dialog.appendChild(item);
+        document.body.appendChild(dialog);
+      }
+
+      if (window.location.href === "https://robinhood.com/account/history") {
+        const item = document.createElement('div');
+        item.className = 'credit-balance-item';
+        const extractButton = document.createElement('button');
+        extractButton.textContent = 'Extract';
+        extractButton.className = 'credit-balance-extract';
+        extractButton.onclick = () => {
+          extractRobinhood();
+        };
+        item.appendChild(extractButton);
+        dialog.appendChild(item);
+        document.body.appendChild(dialog);
+      }
+
+      if (window.location.host === "secure.future.green") {
+        const item = document.createElement('div');
+        item.className = 'credit-balance-item';
+        const extractButton = document.createElement('button');
+        extractButton.textContent = 'Extract';
+        extractButton.className = 'credit-balance-extract';
+        extractButton.onclick = () => {
+          extractFuture();
+        };
+        item.appendChild(extractButton);
+        dialog.appendChild(item);
+        document.body.appendChild(dialog);
+      }
     })
     .catch(error => {
       console.error('Error fetching balances:', error);
@@ -142,6 +199,10 @@ if (url.includes("americanexpress")) {
   account = "bilt";
 } else if (url.includes("discover")) {
   account = "discover";
+} else if (url.includes("robinhood")) {
+  account = "robinhood";
+}else if (url.includes("future")) {
+  account = "future";
 }
 
 // Add this before your fetch call
@@ -152,11 +213,12 @@ function checkApiAvailability() {
 }
 
 if (account) {
-  checkApiAvailability().then(isAvailable => {
-    if (isAvailable) {
-      createBalanceDialog(account);
-    } else {
-      console.warn('Balance API is not available');
-    }
-  });
+  console.log("account", account);
+  // checkApiAvailability().then(isAvailable => {
+  // if (isAvailable) {
+  createBalanceDialog(account);
+  // } else {
+  // console.warn('Balance API is not available');
+  // }
+  // });
 }
