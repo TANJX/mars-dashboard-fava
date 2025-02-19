@@ -26,49 +26,49 @@ export function extractAmexChecking() {
   let output = [];
   // format data into beancount format
   data.forEach(d => {
-    output.push(`${d.date} * "${d.merchant}" ""`)
-    output.push(`  Assets:Checking:Amex  ${d.amount}`)
-    output.push(`  Expenses:Unknown`)
+    output.push(`${d.date} * "${d.merchant}" ""`);
+    output.push(`  Assets:Checking:Amex  ${d.amount}`);
+    output.push(`  Assets:Pending-Transfer`);
     output.push("")
   })
   displayDialog(output);
+}
 
-  function convertDate(inputDate) {
-    // Define the year 
-    const year = new Date().getFullYear();;
+function convertDate(inputDate) {
+  // Define the year 
+  const year = new Date().getFullYear();
 
-    // Split the input date into month and day
-    const [monthStr, day] = inputDate.split(' ');
+  // Split the input date into month and day
+  const [monthStr, day] = inputDate.split(' ');
 
-    // Create a map of month abbreviations to month numbers
-    const monthMap = {
-      Jan: '01',
-      Feb: '02',
-      Mar: '03',
-      Apr: '04',
-      May: '05',
-      Jun: '06',
-      Jul: '07',
-      Aug: '08',
-      Sep: '09',
-      Oct: '10',
-      Nov: '11',
-      Dec: '12'
-    };
+  // Create a map of month abbreviations to month numbers
+  const monthMap = {
+    Jan: '01',
+    Feb: '02',
+    Mar: '03',
+    Apr: '04',
+    May: '05',
+    Jun: '06',
+    Jul: '07',
+    Aug: '08',
+    Sep: '09',
+    Oct: '10',
+    Nov: '11',
+    Dec: '12'
+  };
 
-    // Get the month number from the map
-    const month = monthMap[monthStr];
+  // Get the month number from the map
+  const month = monthMap[monthStr];
 
-    // Format the date as YYYY-MM-DD
-    const formattedDate = `${year}-${month}-${day.padStart(2, '0')}`;
+  // Format the date as YYYY-MM-DD
+  const formattedDate = `${year}-${month}-${day.padStart(2, '0')}`;
 
-    return formattedDate;
-  }
+  return formattedDate;
+}
 
-  function toTitleCase(str) {
-    if (!str) return "";
-    return str.toLowerCase().split(' ').map(word => {
-      return word.charAt(0).toUpperCase() + word.slice(1);
-    }).join(' ');
-  }
+function toTitleCase(str) {
+  if (!str) return "";
+  return str.toLowerCase().split(' ').map(word => {
+    return word.charAt(0).toUpperCase() + word.slice(1);
+  }).join(' ');
 }

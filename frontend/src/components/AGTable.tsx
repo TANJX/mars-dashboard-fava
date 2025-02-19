@@ -5,9 +5,6 @@ import { DashboardData, DashboardRow, AccountData, UserTransaction } from "../ty
 import { parseValue, currencyFormatter, formulaFormatter, isPastDate } from '../utils/data';
 import CellFormatMenu from './CellFormatMenu';
 
-console.log("Rendering AGTable component");
-
-
 const myTheme = themeBalham.withParams({
     wrapperBorder: false,
     headerRowBorder: false,
@@ -240,8 +237,6 @@ function AGTable({ dashboardData }: { dashboardData: DashboardData }) {
 
     // Column definitions
     const columnDefs = useMemo<ColDef<DashboardRow, any>[]>(() => {
-        console.log("Recalculating columnDefs");
-        console.time('columnDefs calculation');
         const columns: ColDef<DashboardRow, any>[] = [
             {
                 field: "date",
@@ -306,7 +301,7 @@ function AGTable({ dashboardData }: { dashboardData: DashboardData }) {
                         field: `${account}.transaction`,
                         editable: true,
                         headerClass: `header-bank-${accountClass}`,
-                        width: 90,
+                        width: 150,
                         valueFormatter: (params: ValueFormatterParams<DashboardRow>) => formulaFormatter(params.value),
                         cellStyle: (params: CellClassParams<DashboardRow>) => ({
                             textAlign: "right",
@@ -347,7 +342,7 @@ function AGTable({ dashboardData }: { dashboardData: DashboardData }) {
                         field: `${account}.description`,
                         editable: true,
                         headerClass: `header-bank-${accountClass}`,
-                        width: 120,
+                        width: 150,
                         cellStyle: (params: CellClassParams<DashboardRow, string>) => ({
                             textAlign: "left",
                             color: isUserEdited(params.data?.date, account, 'description') ? "blue" :
@@ -370,17 +365,16 @@ function AGTable({ dashboardData }: { dashboardData: DashboardData }) {
                 );
             }
         });
-        console.timeEnd('columnDefs calculation');
         return columns;
     }, [dashboardData.accounts, dashboardData.rows, userEdits]);
 
 
     // Debug memo to track edits (optional)
-    useMemo(() => {
-        if (userEdits.length > 0) {
-            console.log('User Edits Structure:', userEdits);
-        }
-    }, [userEdits]);
+    // useMemo(() => {
+    //     if (userEdits.length > 0) {
+    //         console.log('User Edits Structure:', userEdits);
+    //     }
+    // }, [userEdits]);
 
     return (
         <div className="ag-theme-alpine relative" style={{ height: "calc(100vh - 52px)", width: "100%", overflow: "hidden" }} ref={gridRef}>
