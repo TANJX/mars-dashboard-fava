@@ -28,6 +28,17 @@ export function extractRobinhood() {
       }
       dateStr = dateStr.split(" · ")[1];
     }
+
+    // Check URL path for account type
+    const path = window.location.href;
+    if (path.endsWith('ira_roth')) {
+      entry.ira = 'Roth';
+    } else if (path.endsWith('ira_traditional')) {
+      entry.ira = 'Traditional';
+    } else if (path.endsWith('individual')) {
+      entry.ira = undefined;
+    }
+
     if (dateStr.match(dateRegex)) {
       if (dateStr.length <= 6) {
         dateStr = `${dateStr}, ${year}`
@@ -167,7 +178,13 @@ export function extractRobinhood() {
     // Dividend
     else if (entry.info.startsWith("Dividend from")) {
       results.push(`${entry.date} * "${entry.info}"`);
-      results.push(`  Assets:Investment:Robinhood:Brokerage:USD           ${entry.cost} USD`);
+      if (entry.ira === "Roth") {
+        results.push(`  Assets:Investment:Robinhood:Roth-IRA:USD          ${entry.cost} USD`);
+      } else if (entry.ira === "Traditional") {
+        results.push(`  Assets:Investment:Robinhood:Traditional-IRA:USD          ${entry.cost} USD`);
+      } else {
+        results.push(`  Assets:Investment:Robinhood:Brokerage:USD           ${entry.cost} USD`);
+      }
       results.push(`  Income:Trading:Dividend`);
       results.push("");
     }
