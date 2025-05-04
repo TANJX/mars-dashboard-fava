@@ -28,6 +28,7 @@ export function displayDialog(output) {
       max-height: 80vh;
       overflow-y: auto;
       text-align: left;
+      color: black;
     `;
 
     // Create overlay

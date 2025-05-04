@@ -24,7 +24,7 @@ export function extractRobinhood() {
         entry.ira = "Traditional";
       } else if (dateStr.includes("Roth IRA") && !dateStr.includes("Transfer to")) {
         entry.ira = "Roth";
-        console.log("Roth IRA", dateStr);
+        // console.log("Roth IRA", dateStr);
       }
       dateStr = dateStr.split(" · ")[1];
     }
@@ -98,9 +98,14 @@ export function extractRobinhood() {
 
   for (let i = 0; i < entries.length; i++) {
     const entry = entries[i];
+    console.log(entry);
     if (entry.transaction) {
       const symbol = entry.symbol;
       const description = `${entry.info}`;
+      if (!entry.amountInfo || entry.amountInfo.split(" ").length <= 3) {
+        console.warn("Skipping", entry);
+        continue;
+      }
       const amount = parseFloat(entry.amountInfo.split(" ")[0]);
       const price = parseFloat(entry.amountInfo.split(" ")[3].substring(1));
       const cost = Math.round(amount * price * 100) / 100;

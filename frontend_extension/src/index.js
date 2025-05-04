@@ -20,6 +20,7 @@ style.textContent = `
     min-width: 200px;
     font-family: Arial, sans-serif;
     font-size: 12px;
+    color: black;
   }
 
   .credit-balance-header {
@@ -152,7 +153,7 @@ function createBalanceDialog(account) {
         document.body.appendChild(dialog);
       }
 
-      if (window.location.href === "https://robinhood.com/account/history") {
+      if (window.location.href.startsWith("https://robinhood.com/account/history")) {
         const item = document.createElement('div');
         item.className = 'credit-balance-item';
         const extractButton = document.createElement('button');
