@@ -24,7 +24,6 @@ export function extractRobinhood() {
         entry.ira = "Traditional";
       } else if (dateStr.includes("Roth IRA") && !dateStr.includes("Transfer to")) {
         entry.ira = "Roth";
-        // console.log("Roth IRA", dateStr);
       }
       dateStr = dateStr.split(" · ")[1];
     }
@@ -67,14 +66,14 @@ export function extractRobinhood() {
     if (transaction.querySelector('.css-5a1gnn > span'))
       entry.amountInfo = transaction.querySelector('.css-5a1gnn > span').textContent;
     else {
-      transaction.querySelectorAll('.web-app-emotion-cache-1upilqn').forEach((el) => {
+      transaction.querySelectorAll('.web-app-emotion-cache-1ay3jby').forEach((el) => {
         if (el.textContent.includes("Filled Quantity")) {
           entry.amountInfo = el.querySelector('.css-y3z1hq').textContent;
         }
       })
     }
 
-    transaction.querySelectorAll('.web-app-emotion-cache-1upilqn').forEach((el) => {
+    transaction.querySelectorAll('.web-app-emotion-cache-1ay3jby').forEach((el) => {
       if (el.textContent.includes("Symbol")) {
         entry.symbol = el.querySelector('.css-y3z1hq').textContent;
       }
@@ -95,17 +94,23 @@ export function extractRobinhood() {
   });
 
   let results = [];
+  // Filter out entries that should be skipped
+  entries = entries.filter(entry => {
+    if (entry.transaction && (!entry.amountInfo || entry.amountInfo.split(" ").length <= 3)) {
+      console.warn("Skipping", entry);
+      return false;
+    }
+    return true;
+  });
+
+  console.log("entries", entries);
 
   for (let i = 0; i < entries.length; i++) {
     const entry = entries[i];
-    console.log(entry);
+    console.log("entry", entry);
     if (entry.transaction) {
       const symbol = entry.symbol;
       const description = `${entry.info}`;
-      if (!entry.amountInfo || entry.amountInfo.split(" ").length <= 3) {
-        console.warn("Skipping", entry);
-        continue;
-      }
       const amount = parseFloat(entry.amountInfo.split(" ")[0]);
       const price = parseFloat(entry.amountInfo.split(" ")[3].substring(1));
       const cost = Math.round(amount * price * 100) / 100;

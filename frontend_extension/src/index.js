@@ -206,13 +206,6 @@ if (url.includes("americanexpress")) {
   account = "future";
 }
 
-// Add this before your fetch call
-function checkApiAvailability() {
-  return fetch(`${API_BASE_URL}`)
-    .then(response => response.ok)
-    .catch(() => false);
-}
-
 if (account) {
   console.log("account", account);
   // checkApiAvailability().then(isAvailable => {

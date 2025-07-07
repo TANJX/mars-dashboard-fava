@@ -54,7 +54,7 @@ function App() {
         }
       });
       const dateObj = new Date(lastRow.date);
-      for (let i = 0; i < 31; i++) {
+      for (let i = 0; i < 60; i++) {
         dateObj.setDate(dateObj.getDate() + 1);
         const nextDate = dateObj.toISOString().split('T')[0];
         const newRow = structuredClone(lastRow);
