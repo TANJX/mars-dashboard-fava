@@ -13,6 +13,8 @@ export default {
         'bank-discover': '#ff6d01',
         'bank-citi': '#1255cc',
         'bank-chase': '#1255cc',
+        'bank-td': '#008a00',
+        'bank-wellsfargo': '#d71e28',
       }
     },
   },

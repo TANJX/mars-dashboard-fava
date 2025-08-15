@@ -1,15 +1,22 @@
 import { AgGridReact } from "ag-grid-react";
 import { useMemo, useState, useEffect, useRef } from "react";
-import { CellClassParams, CellClickedEvent, ColDef, NewValueParams, themeBalham, ValueFormatterParams } from "ag-grid-community";
+import {
+    CellClassParams,
+    CellClickedEvent,
+    ColDef,
+    NewValueParams,
+    themeBalham,
+    ValueFormatterParams,
+} from "ag-grid-community";
 import { DashboardData, DashboardRow, AccountData, UserTransaction } from "../types/DashboardData";
-import { parseValue, currencyFormatter, formulaFormatter, isPastDate } from '../utils/data';
-import CellFormatMenu from './CellFormatMenu';
+import { parseValue, currencyFormatter, formulaFormatter, isPastDate } from "../utils/data";
+import CellFormatMenu from "./CellFormatMenu";
 
 const myTheme = themeBalham.withParams({
     wrapperBorder: false,
     headerRowBorder: false,
     // rowBorder: { width: 1, color: '#9696C8' },
-    columnBorder: { color: '#f0f0f0' },
+    columnBorder: { color: "#f0f0f0" },
 });
 
 interface MenuPosition {
@@ -25,7 +32,7 @@ interface ActiveCell {
 
 function AGTable({ dashboardData }: { dashboardData: DashboardData }) {
     useEffect(() => {
-        return () => console.log('AGTable unmounting');
+        return () => console.log("AGTable unmounting");
     });
 
     const gridRef = useRef<HTMLDivElement>(null);
@@ -38,7 +45,7 @@ function AGTable({ dashboardData }: { dashboardData: DashboardData }) {
         if (startIndex > 0) {
             const prevAccountData = newRowData[startIndex - 1][account] as AccountData;
             prevBalance = startIndex > 0 ? parseValue(prevAccountData.balance) : 0;
-            prevTransaction = startIndex > 0 ? parseValue(prevAccountData.transaction || '0') : 0;
+            prevTransaction = startIndex > 0 ? parseValue(prevAccountData.transaction || "0") : 0;
         } else {
             prevBalance = parseValue((rowData[startIndex][account] as AccountData).balance);
             prevTransaction = 0;
@@ -51,7 +58,7 @@ function AGTable({ dashboardData }: { dashboardData: DashboardData }) {
 
             // Update previous values for next iteration
             prevBalance = parseValue(accountData.balance);
-            prevTransaction = parseValue(accountData.transaction || '0');
+            prevTransaction = parseValue(accountData.transaction || "0");
         }
         return newRowData;
     };
@@ -61,9 +68,9 @@ function AGTable({ dashboardData }: { dashboardData: DashboardData }) {
         const updatedRows = [...dashboardData.rows];
 
         if (dashboardData.user_transactions) {
-            dashboardData.user_transactions.forEach(transaction => {
+            dashboardData.user_transactions.forEach((transaction) => {
                 const { date, account, transaction: transactionValue, description } = transaction;
-                const rowIndex = updatedRows.findIndex(row => row.date === date);
+                const rowIndex = updatedRows.findIndex((row) => row.date === date);
 
                 if (rowIndex !== -1) {
                     // Update both transaction and description if they exist
@@ -105,7 +112,7 @@ function AGTable({ dashboardData }: { dashboardData: DashboardData }) {
             dashboardData.rows.forEach((row, index) => {
                 const accountData = row[account] as AccountData;
                 const balance = parseFloat(accountData.balance);
-                const currentTransaction = parseFloat(accountData.transaction || '0');
+                const currentTransaction = parseFloat(accountData.transaction || "0");
 
                 // Skip validation for first row since we don't have previous balance
                 if (index === 0) {
@@ -143,20 +150,26 @@ function AGTable({ dashboardData }: { dashboardData: DashboardData }) {
             account,
             [field]: value,
         };
-        setUserEdits(prev => {
+        setUserEdits((prev) => {
             const newEdits = [...prev];
             newEdits.push(newUserEdit);
             return newEdits;
         });
         // send an async request to save the transaction
         fetch(`http://127.0.0.1:5000/mars-universe-bank/extension/MarsDashboard/save_user_transaction`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify(newUserEdit),
         });
     };
 
-    const handleFormatUpdate = (date: string, account: string, field: "transaction" | "description", bold?: boolean, italic?: boolean) => {
+    const handleFormatUpdate = (
+        date: string,
+        account: string,
+        field: "transaction" | "description",
+        bold?: boolean,
+        italic?: boolean
+    ) => {
         console.log("handleFormatUpdate called", { date, account, field, bold, italic });
         const newUserEdit: UserTransaction = {
             date,
@@ -164,19 +177,19 @@ function AGTable({ dashboardData }: { dashboardData: DashboardData }) {
             format: {
                 [field]: {
                     bold,
-                    italic
-                }
-            }
+                    italic,
+                },
+            },
         };
-        setUserEdits(prev => {
+        setUserEdits((prev) => {
             const newEdits = [...prev];
             newEdits.push(newUserEdit);
             return newEdits;
         });
         // send an async request to save the format
         fetch(`http://127.0.0.1:5000/mars-universe-bank/extension/MarsDashboard/save_user_transaction`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify(newUserEdit),
         });
     };
@@ -184,15 +197,26 @@ function AGTable({ dashboardData }: { dashboardData: DashboardData }) {
     // Helper to check if a cell was edited by user
     const isUserEdited = (date: string | undefined, account: string, field: "transaction" | "description") => {
         if (!date) return false;
-        return userEdits.some(transaction => transaction.date === date && transaction.account === account && transaction[field]);
+        return userEdits.some(
+            (transaction) => transaction.date === date && transaction.account === account && transaction[field]
+        );
     };
 
-    const isUserEditedFormat = (date: string | undefined, account: string, field: "transaction" | "description", format: "bold" | "italic") => {
+    const isUserEditedFormat = (
+        date: string | undefined,
+        account: string,
+        field: "transaction" | "description",
+        format: "bold" | "italic"
+    ) => {
         if (!date) return false;
         // find the last transaction for this account and field
         for (let i = userEdits.length - 1; i >= 0; i--) {
             const transaction = userEdits[i];
-            if (transaction.date === date && transaction.account === account && transaction.format?.[field]?.[format] !== undefined) {
+            if (
+                transaction.date === date &&
+                transaction.account === account &&
+                transaction.format?.[field]?.[format] !== undefined
+            ) {
                 return transaction.format[field][format];
             }
         }
@@ -208,8 +232,8 @@ function AGTable({ dashboardData }: { dashboardData: DashboardData }) {
         const field = event.column.getColDef().field;
         if (!field || !event.data?.date) return;
 
-        const [account, fieldType] = field.split('.');
-        if (fieldType !== 'transaction' && fieldType !== 'description') return;
+        const [account, fieldType] = field.split(".");
+        if (fieldType !== "transaction" && fieldType !== "description") return;
 
         // Get cell element position
         const cellElement = event.event?.target as HTMLElement;
@@ -217,16 +241,16 @@ function AGTable({ dashboardData }: { dashboardData: DashboardData }) {
 
         const rect = cellElement.getBoundingClientRect();
         const gridRect = gridRef.current.getBoundingClientRect();
-        
+
         setMenuPosition({
             x: rect.right - gridRect.left,
-            y: rect.top + (rect.height / 2) - gridRect.top
+            y: rect.top + rect.height / 2 - gridRect.top,
         });
-        
+
         setActiveCell({
             date: event.data.date,
             account,
-            field: fieldType
+            field: fieldType,
         });
     };
 
@@ -245,21 +269,21 @@ function AGTable({ dashboardData }: { dashboardData: DashboardData }) {
                 pinned: "left" as const,
                 width: 90,
                 valueFormatter: (params: ValueFormatterParams<DashboardRow>) => {
-                    const date = new Date(params.value + 'T00:00');
-                    const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-                    return `${days[date.getDay()]} ${(date.getMonth() + 1)}/${date.getDate()}`;
+                    const date = new Date(params.value + "T00:00");
+                    const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+                    return `${days[date.getDay()]} ${date.getMonth() + 1}/${date.getDate()}`;
                 },
                 cellStyle: (params: CellClassParams<DashboardRow>) => {
                     const today = new Date().toISOString().split("T")[0];
                     const isToday = params.value === today;
                     const isPast = params.value < today;
-                    const isWeekend = [0, 6].includes(new Date(params.value + 'T00:00').getDay());
+                    const isWeekend = [0, 6].includes(new Date(params.value + "T00:00").getDay());
 
                     return {
                         textAlign: "right",
                         fontWeight: isToday ? "bold" : "normal",
                         textDecoration: isToday ? "underline" : "none",
-                        color: isPast ? "#D1D5DB" : (isWeekend ? "#777" : "#"),
+                        color: isPast ? "#D1D5DB" : isWeekend ? "#777" : "#",
                         fontStyle: isPast || isWeekend ? "italic" : "normal",
                     };
                 },
@@ -267,7 +291,18 @@ function AGTable({ dashboardData }: { dashboardData: DashboardData }) {
         ];
 
         // Add columns for each account only if they have data
-        dashboardData.accounts.forEach((account) => {
+        const filteredAccounts = dashboardData.accounts
+            .filter((account) => account !== "Assets:Checking:Optum" && account !== "Assets:Checking:Amy-PrimePay")
+            .sort((a, b) => {
+                // Put Checking accounts before Saving accounts
+                const aIsChecking = a.startsWith("Assets:Checking:");
+                const bIsChecking = b.startsWith("Assets:Checking:");
+                if (aIsChecking && !bIsChecking) return -1;
+                if (!aIsChecking && bIsChecking) return 1;
+                return a.localeCompare(b);
+            });
+
+        filteredAccounts.forEach((account) => {
             // Check if account has any transactions or non-zero balances
             const hasData = dashboardData.rows.some((row) => {
                 const accountData = row[account] as AccountData;
@@ -276,10 +311,14 @@ function AGTable({ dashboardData }: { dashboardData: DashboardData }) {
 
             // Only add columns if the account has data
             if (hasData) {
-                const accountShort = account.replace("Assets:Saving:", "").replace("Assets:Checking:", "");
+                let accountShort = account.replace("Assets:Saving:", "").replace("Assets:Checking:", "");
+                if (account.startsWith("Assets:Saving:")) {
+                    accountShort += " (S)";
+                }
                 const accountClass = account
                     .replace("Assets:Checking:", "")
                     .replace("Assets:Saving:", "")
+                    .replace("-", "")
                     .replace(":", "-")
                     .toLowerCase();
 
@@ -292,8 +331,11 @@ function AGTable({ dashboardData }: { dashboardData: DashboardData }) {
                         valueFormatter: (params: { value: string }) => currencyFormatter(params.value),
                         cellStyle: (params: CellClassParams<DashboardRow>) => ({
                             textAlign: "right",
-                            color: isPastDate(params.data?.date) ? "#D1D5DB" :
-                                parseFloat(params.value) < 0 ? "red" : "inherit",
+                            color: isPastDate(params.data?.date)
+                                ? "#D1D5DB"
+                                : parseFloat(params.value) < 0
+                                ? "red"
+                                : "inherit",
                         }),
                     },
                     {
@@ -305,10 +347,17 @@ function AGTable({ dashboardData }: { dashboardData: DashboardData }) {
                         valueFormatter: (params: ValueFormatterParams<DashboardRow>) => formulaFormatter(params.value),
                         cellStyle: (params: CellClassParams<DashboardRow>) => ({
                             textAlign: "right",
-                            color: isUserEdited(params.data?.date, account, 'transaction') ? "blue" :
-                                isPastDate(params.data?.date) ? "#D1D5DB" : "inherit",
-                            fontWeight: isUserEditedFormat(params.data?.date, account, 'transaction', 'bold') ? "bold" : "normal",
-                            fontStyle: isUserEditedFormat(params.data?.date, account, 'transaction', 'italic') ? "italic" : "normal",
+                            color: isUserEdited(params.data?.date, account, "transaction")
+                                ? "blue"
+                                : isPastDate(params.data?.date)
+                                ? "#D1D5DB"
+                                : "inherit",
+                            fontWeight: isUserEditedFormat(params.data?.date, account, "transaction", "bold")
+                                ? "bold"
+                                : "normal",
+                            fontStyle: isUserEditedFormat(params.data?.date, account, "transaction", "italic")
+                                ? "italic"
+                                : "normal",
                         }),
                         onCellClicked: (event: CellClickedEvent) => {
                             handleCellClick(event);
@@ -319,16 +368,11 @@ function AGTable({ dashboardData }: { dashboardData: DashboardData }) {
                             const rowIndex = rowData.findIndex((row) => row.date === event.data.date);
 
                             if (rowIndex === -1) {
-                                console.warn('Row not found for edit');
+                                console.warn("Row not found for edit");
                                 return;
                             }
 
-                            handleEditUpdate(
-                                event.data.date,
-                                account,
-                                'transaction',
-                                event.newValue || ""
-                            );
+                            handleEditUpdate(event.data.date, account, "transaction", event.newValue || "");
 
                             const updatedRowData = [...rowData];
                             const accountData = updatedRowData[rowIndex][account] as AccountData;
@@ -345,21 +389,23 @@ function AGTable({ dashboardData }: { dashboardData: DashboardData }) {
                         width: 150,
                         cellStyle: (params: CellClassParams<DashboardRow, string>) => ({
                             textAlign: "left",
-                            color: isUserEdited(params.data?.date, account, 'description') ? "blue" :
-                                isPastDate(params.data?.date) ? "#D1D5DB" : "inherit",
-                            fontWeight: isUserEditedFormat(params.data?.date, account, 'description', 'bold') ? "bold" : "normal",
-                            fontStyle: isUserEditedFormat(params.data?.date, account, 'description', 'italic') ? "italic" : "normal",
+                            color: isUserEdited(params.data?.date, account, "description")
+                                ? "blue"
+                                : isPastDate(params.data?.date)
+                                ? "#D1D5DB"
+                                : "inherit",
+                            fontWeight: isUserEditedFormat(params.data?.date, account, "description", "bold")
+                                ? "bold"
+                                : "normal",
+                            fontStyle: isUserEditedFormat(params.data?.date, account, "description", "italic")
+                                ? "italic"
+                                : "normal",
                         }),
                         onCellClicked: (event: CellClickedEvent) => {
                             handleCellClick(event);
                         },
                         onCellValueChanged: (event: NewValueParams<DashboardRow, string>) => {
-                            handleEditUpdate(
-                                event.data.date,
-                                account,
-                                'description',
-                                event.newValue || ""
-                            );
+                            handleEditUpdate(event.data.date, account, "description", event.newValue || "");
                         },
                     }
                 );
@@ -367,7 +413,6 @@ function AGTable({ dashboardData }: { dashboardData: DashboardData }) {
         });
         return columns;
     }, [dashboardData.accounts, dashboardData.rows, userEdits]);
-
 
     // Debug memo to track edits (optional)
     // useMemo(() => {
@@ -377,33 +422,55 @@ function AGTable({ dashboardData }: { dashboardData: DashboardData }) {
     // }, [userEdits]);
 
     return (
-        <div className="ag-theme-alpine relative" style={{ height: "calc(100vh - 52px)", width: "100%", overflow: "hidden" }} ref={gridRef}>
+        <div
+            className="ag-theme-alpine relative"
+            style={{ height: "calc(100vh - 52px)", width: "100%", overflow: "hidden" }}
+            ref={gridRef}
+        >
             <CellFormatMenu
                 position={menuPosition}
                 isVisible={!!menuPosition && !!activeCell}
                 onClose={closeMenu}
-                isBold={activeCell ? isUserEditedFormat(activeCell.date, activeCell.account, activeCell.field, 'bold') : false}
-                isItalic={activeCell ? isUserEditedFormat(activeCell.date, activeCell.account, activeCell.field, 'italic') : false}
+                isBold={
+                    activeCell
+                        ? isUserEditedFormat(activeCell.date, activeCell.account, activeCell.field, "bold")
+                        : false
+                }
+                isItalic={
+                    activeCell
+                        ? isUserEditedFormat(activeCell.date, activeCell.account, activeCell.field, "italic")
+                        : false
+                }
                 onToggleBold={() => {
                     if (activeCell) {
-                        const currentState = isUserEditedFormat(activeCell.date, activeCell.account, activeCell.field, 'bold');
+                        const currentState = isUserEditedFormat(
+                            activeCell.date,
+                            activeCell.account,
+                            activeCell.field,
+                            "bold"
+                        );
                         handleFormatUpdate(
                             activeCell.date,
                             activeCell.account,
                             activeCell.field,
                             !currentState,
-                            isUserEditedFormat(activeCell.date, activeCell.account, activeCell.field, 'italic')
+                            isUserEditedFormat(activeCell.date, activeCell.account, activeCell.field, "italic")
                         );
                     }
                 }}
                 onToggleItalic={() => {
                     if (activeCell) {
-                        const currentState = isUserEditedFormat(activeCell.date, activeCell.account, activeCell.field, 'italic');
+                        const currentState = isUserEditedFormat(
+                            activeCell.date,
+                            activeCell.account,
+                            activeCell.field,
+                            "italic"
+                        );
                         handleFormatUpdate(
                             activeCell.date,
                             activeCell.account,
                             activeCell.field,
-                            isUserEditedFormat(activeCell.date, activeCell.account, activeCell.field, 'bold'),
+                            isUserEditedFormat(activeCell.date, activeCell.account, activeCell.field, "bold"),
                             !currentState
                         );
                     }

@@ -20,3 +20,9 @@
 .header-bank-citi {
     @apply bg-bank-citi text-white;
 }
+.header-bank-td {
+    @apply bg-bank-td text-white;
+}
+.header-bank-wellsfargo {
+    @apply bg-bank-wellsfargo text-white;
+}
