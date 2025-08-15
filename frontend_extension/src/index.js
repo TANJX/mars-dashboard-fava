@@ -202,8 +202,10 @@ if (url.includes("americanexpress")) {
   account = "discover";
 } else if (url.includes("robinhood")) {
   account = "robinhood";
-}else if (url.includes("future")) {
+} else if (url.includes("future")) {
   account = "future";
+} else if (url.includes("td.com")) {
+  account = "td";
 }
 
 if (account) {

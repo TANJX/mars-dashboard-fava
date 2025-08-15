@@ -15,7 +15,8 @@
     "*://*.wellsfargo.com/*",
     "*://*.discover.com/*",
     "*://*.robinhood.com/*",
-    "*://*.future.green/*"
+    "*://*.future.green/*",
+    "*://*.td.com/*"
   ],
   "content_scripts": [
     {
@@ -26,7 +27,8 @@
         "*://*.wellsfargo.com/*",
         "*://*.discover.com/*",
         "*://*.robinhood.com/*",
-        "*://*.future.green/*"
+        "*://*.future.green/*",
+        "*://*.td.com/*"
       ],
       "js": ["content.js"]
     }
