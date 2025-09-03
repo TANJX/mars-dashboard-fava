@@ -12,11 +12,17 @@ export function extractAmexChecking() {
     if (cells.length < 4) {
       return null;
     }
+    let merchant = "";
+    if (cells.length < 2 || !cells[1].innerText.split('\n')[1]) {
+      merchant = toTitleCase(cells[1].innerText.split('\n')[0]);
+    } else {
+      merchant = toTitleCase(cells[1].innerText.split('\n')[1]);
+    }
     return {
-      date: convertDate(cells[1].innerText),
+      date: convertDate(cells[0].innerText),
       // description: cells[2].innerText.split('\n')[0],
-      merchant: toTitleCase(cells[2].innerText.split('\n')[1]),
-      amount: cells[3].innerText.replace('$', '') + " USD"
+      merchant: merchant,
+      amount: cells[2].innerText.replace('$', '') + " USD"
     }
   })
 
