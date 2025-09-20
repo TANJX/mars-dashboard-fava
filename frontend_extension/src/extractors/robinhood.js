@@ -1,9 +1,12 @@
 import { displayDialog } from '../utils.js';
 
 export function extractRobinhood() {
+  // get page url
+  const accountType = document.querySelector("button#downshift-1-toggle-button")?.innerText || "";
   let entries = []
   let dateRegex = /^[A-Z][a-z]{2} \d{1,2}(, \d{4})?$/g
   let hourRegex = /^\d{1,2}h$/g
+  let minuteRegex = /^\d{1,2}m$/g
 
   let year = (new Date()).getFullYear()
 
@@ -29,12 +32,12 @@ export function extractRobinhood() {
     }
 
     // Check URL path for account type
-    const path = window.location.href;
-    if (path.endsWith('ira_roth')) {
+    // const path = window.location.href;
+    if (accountType === 'Roth IRA') {
       entry.ira = 'Roth';
-    } else if (path.endsWith('ira_traditional')) {
+    } else if (accountType === 'Traditional IRA') {
       entry.ira = 'Traditional';
-    } else if (path.endsWith('individual')) {
+    } else if (accountType === 'Individual') {
       entry.ira = undefined;
     }
 
@@ -43,7 +46,7 @@ export function extractRobinhood() {
         dateStr = `${dateStr}, ${year}`
       }
       dateStr = (new Date(Date.parse(dateStr))).toISOString().slice(0, 10);
-    } else if (dateStr.match(hourRegex)) {
+    } else if (dateStr.match(hourRegex) || dateStr.match(minuteRegex)) {
       // today
       dateStr = (new Date()).toISOString().slice(0, 10);
     }
@@ -188,9 +191,9 @@ export function extractRobinhood() {
     // Dividend
     else if (entry.info.startsWith("Dividend from")) {
       results.push(`${entry.date} * "${entry.info}"`);
-      if (entry.ira === "Roth") {
+      if (entry.ira === "Roth" || accountType === "Roth IRA") {
         results.push(`  Assets:Investment:Robinhood:Roth-IRA:USD          ${entry.cost} USD`);
-      } else if (entry.ira === "Traditional") {
+      } else if (entry.ira === "Traditional" || accountType === "Traditional IRA") {
         results.push(`  Assets:Investment:Robinhood:Traditional-IRA:USD          ${entry.cost} USD`);
       } else {
         results.push(`  Assets:Investment:Robinhood:Brokerage:USD           ${entry.cost} USD`);
@@ -200,13 +203,25 @@ export function extractRobinhood() {
     }
     else if (entry.info.endsWith("Stock Lending Payment")) {
       results.push(`${entry.date} * "${entry.info}"`);
-      results.push(`  Assets:Investment:Robinhood:Brokerage:USD           ${entry.cost} USD`);
+      if (entry.ira === "Roth" || accountType === "Roth IRA") {
+        results.push(`  Assets:Investment:Robinhood:Roth-IRA:USD          ${entry.cost} USD`);
+      } else if (entry.ira === "Traditional" || accountType === "Traditional IRA") {
+        results.push(`  Assets:Investment:Robinhood:Traditional-IRA:USD          ${entry.cost} USD`);
+      } else {
+        results.push(`  Assets:Investment:Robinhood:Brokerage:USD           ${entry.cost} USD`);
+      }
       results.push(`  Income:Trading:Stock`);
       results.push("");
     }
     else {
       results.push(`${entry.date} ! "${entry.info}"`);
-      results.push(`  Assets:Investment:Robinhood:Brokerage:USD           ${entry.cost} USD`);
+      if (entry.ira === "Roth" || accountType === "Roth IRA") {
+        results.push(`  Assets:Investment:Robinhood:Roth-IRA:USD          ${entry.cost} USD`);
+      } else if (entry.ira === "Traditional" || accountType === "Traditional IRA") {
+        results.push(`  Assets:Investment:Robinhood:Traditional-IRA:USD          ${entry.cost} USD`);
+      } else {
+        results.push(`  Assets:Investment:Robinhood:Brokerage:USD           ${entry.cost} USD`);
+      }
       results.push(``);
       results.push("");
     }
