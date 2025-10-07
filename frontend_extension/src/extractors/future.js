@@ -28,14 +28,14 @@ export function extractFuture() {
   Array.from(transactions).reverse().forEach((transaction) => {
     // Extract the description
     const descriptionElement = transaction.querySelector(
-      'div.flex.justify-between.items-center.font-sans-bold > div:first-child'
+      'div.flex.justify-between.items-center > div:first-child'
     );
     const descriptionRaw = descriptionElement ? descriptionElement.innerText.trim() : 'Unknown';
     let description = toTitleCase(descriptionRaw);
 
     // Extract the amount
     const amountElement = transaction.querySelector(
-      'div.flex.justify-between.items-center.font-sans-bold > div:last-child'
+      'div.flex.justify-between.items-center > div:last-child'
     );
     const amountText = amountElement ? amountElement.innerText.trim() : '$0.00';
     const amount = parseFloat(amountText.replace('$', ''));
@@ -60,7 +60,7 @@ export function extractFuture() {
       description = `Cash Back For ${Math.round(amount * 100)} Points`;
     } else if (descriptionRaw === 'ASTRA*Future') {
       expenseAccount = 'Assets:Pending-Transfer';
-    } else if (descriptionRaw === 'Tesla Supercharger Us' || descriptionRaw === 'Tesla Inc Supercharger') {
+    } else if (descriptionRaw.toLowerCase().includes('tesla')) {
       expenseAccount = 'Expenses:Transportation:Driving';
     }
 
