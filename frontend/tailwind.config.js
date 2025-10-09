@@ -15,6 +15,7 @@ export default {
         'bank-chase': '#1255cc',
         'bank-td': '#008a00',
         'bank-wellsfargo': '#d71e28',
+        'bank-robinhood': '#1b170e',
       }
     },
   },

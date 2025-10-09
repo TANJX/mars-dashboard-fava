@@ -18,13 +18,13 @@ from flask import request  # Add this import at the top
 
 class MarsDashboard(FavaExtensionBase):
     report_title = "Mars Dashboard"
-    excluded_accounts = ["Assets:Checking:Future"]
+    excluded_accounts = ["Assets:Checking:Future", "Assets:Checking:Optum", "Assets:Checking:Amy-PrimePay"]
     has_js_module = True
 
     @extension_endpoint
     def get_balance(self):
         account = request.args.get("account")
-        query = """SELECT account WHERE (account ~ "Assets:Checking" OR account ~ "Assets:Saving" OR account ~ "Liabilities:Credit") AND NOT close_date(account) GROUP BY account"""
+        query = """SELECT account WHERE (account ~ "Assets:Checking" OR account ~ "Assets:Saving" OR account ~ "Liabilities:Credit" OR account ~ "Assets:Investment:Robinhood:Brokerage:USD" OR account ~ "Assets:Investment:Robinhood:Traditional-IRA:USD" OR account ~ "Assets:Investment:Robinhood:Roth-IRA:USD") AND NOT close_date(account) GROUP BY account"""
         _, rrows = self.exec_query(query)
         # get all accounts that match the query
         accounts = [row.account for row in rrows if account in row.account.lower()]
@@ -33,7 +33,9 @@ class MarsDashboard(FavaExtensionBase):
             # get the last entry where the date is today or earlier
             entries = self.get_account_entries(account)
             current_date = datetime.datetime.now().date() + datetime.timedelta(days=1)
-            last_entry = next((entry for entry in reversed(entries) if entry[0] <= current_date), None)
+            last_entry = next(
+                (entry for entry in reversed(entries) if entry[0] <= current_date), None
+            )
             if last_entry:
                 balance = float(last_entry[1])
             else:
@@ -56,7 +58,11 @@ class MarsDashboard(FavaExtensionBase):
         all_accounts = [
             k
             for k in self.ledger.accounts.keys()
-            if (k.startswith("Assets:Checking") or k.startswith("Assets:Saving"))
+            if (
+                k.startswith("Assets:Checking")
+                or k.startswith("Assets:Saving")
+                or k.startswith("Assets:Investment:Robinhood:Brokerage:USD")
+            )
             and k not in self.excluded_accounts
         ]
 
@@ -93,7 +99,7 @@ class MarsDashboard(FavaExtensionBase):
             rows.append(row)
             current_date += datetime.timedelta(days=1)
 
-        query = """SELECT account, date, payee, position WHERE account ~ "^Assets:Saving" OR account ~ "^Assets:Checking" """
+        query = """SELECT account, date, payee, position WHERE account ~ "^Assets:Saving" OR account ~ "^Assets:Checking" OR account ~ "Assets:Investment:Robinhood:Brokerage:USD" """
         _, rrows = self.exec_query(query)
 
         # 0 - account, 1 - date, 2 - payee, 3 - position

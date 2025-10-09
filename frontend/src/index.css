@@ -26,3 +26,6 @@
 .header-bank-wellsfargo {
     @apply bg-bank-wellsfargo text-white;
 }
+.header-bank-robinhood {
+    @apply bg-bank-robinhood text-white;
+}

@@ -31,7 +31,7 @@ function App() {
 
       setIsLoading(true);
       const response = await fetch(
-        `http://127.0.0.1:5000/mars-universe-bank/extension/MarsDashboard/get_data?start_date=${startDate}&end_date=${endDate}`
+        `/mars-universe-bank/extension/MarsDashboard/get_data?start_date=${startDate}&end_date=${endDate}`
       );
 
       if (!response.ok) {

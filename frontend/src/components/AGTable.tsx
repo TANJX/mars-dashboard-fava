@@ -156,7 +156,7 @@ function AGTable({ dashboardData }: { dashboardData: DashboardData }) {
             return newEdits;
         });
         // send an async request to save the transaction
-        fetch(`http://127.0.0.1:5000/mars-universe-bank/extension/MarsDashboard/save_user_transaction`, {
+        fetch(`/mars-universe-bank/extension/MarsDashboard/save_user_transaction`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(newUserEdit),
@@ -187,7 +187,7 @@ function AGTable({ dashboardData }: { dashboardData: DashboardData }) {
             return newEdits;
         });
         // send an async request to save the format
-        fetch(`http://127.0.0.1:5000/mars-universe-bank/extension/MarsDashboard/save_user_transaction`, {
+        fetch(`/mars-universe-bank/extension/MarsDashboard/save_user_transaction`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(newUserEdit),
@@ -291,16 +291,51 @@ function AGTable({ dashboardData }: { dashboardData: DashboardData }) {
         ];
 
         // Add columns for each account only if they have data
-        const filteredAccounts = dashboardData.accounts
-            .filter((account) => account !== "Assets:Checking:Optum" && account !== "Assets:Checking:Amy-PrimePay")
-            .sort((a, b) => {
-                // Put Checking accounts before Saving accounts
-                const aIsChecking = a.startsWith("Assets:Checking:");
-                const bIsChecking = b.startsWith("Assets:Checking:");
-                if (aIsChecking && !bIsChecking) return -1;
-                if (!aIsChecking && bIsChecking) return 1;
-                return a.localeCompare(b);
-            });
+        const filteredAccounts = dashboardData.accounts.sort((a, b) => {
+            // Count activities (non-empty transactions) for each account
+            const aActivities = dashboardData.rows.filter((row) => {
+                const accountData = row[a] as AccountData;
+                return accountData.transaction && accountData.transaction.trim() !== "";
+            }).length;
+
+            const bActivities = dashboardData.rows.filter((row) => {
+                const accountData = row[b] as AccountData;
+                return accountData.transaction && accountData.transaction.trim() !== "";
+            }).length;
+
+            // If both have >5 activities OR both have <=5 activities, compare by balance
+            const aHasHighActivity = aActivities > 5;
+            const bHasHighActivity = bActivities > 5;
+            const aIsRobinhood = a.includes("Robinhood");
+            const bIsRobinhood = b.includes("Robinhood");
+
+            // Priority 1: High activity accounts (but not Robinhood)
+            if (aHasHighActivity && !aIsRobinhood && !(bHasHighActivity && !bIsRobinhood)) return -1;
+            if (bHasHighActivity && !bIsRobinhood && !(aHasHighActivity && !aIsRobinhood)) return 1;
+
+            // Priority 2: Robinhood accounts
+            if (aIsRobinhood && !bIsRobinhood) return -1;
+            if (bIsRobinhood && !aIsRobinhood) return 1;
+
+            // Priority 3: Remaining accounts, sort by max balance
+
+            // Both in same activity tier, sort by max balance
+            const aMaxBalance = Math.max(
+                ...dashboardData.rows.map((row) => {
+                    const accountData = row[a] as AccountData;
+                    return Math.abs(parseFloat(accountData.balance) || 0);
+                })
+            );
+
+            const bMaxBalance = Math.max(
+                ...dashboardData.rows.map((row) => {
+                    const accountData = row[b] as AccountData;
+                    return Math.abs(parseFloat(accountData.balance) || 0);
+                })
+            );
+
+            return bMaxBalance - aMaxBalance; // Descending order
+        });
 
         filteredAccounts.forEach((account) => {
             // Check if account has any transactions or non-zero balances
@@ -314,8 +349,11 @@ function AGTable({ dashboardData }: { dashboardData: DashboardData }) {
                 let accountShort = account.replace("Assets:Saving:", "").replace("Assets:Checking:", "");
                 if (account.startsWith("Assets:Saving:")) {
                     accountShort += " (S)";
+                } else if (account === "Assets:Investment:Robinhood:Brokerage:USD") {
+                    accountShort = "Robinhood";
                 }
                 const accountClass = account
+                    .replace("Assets:Investment:Robinhood:Brokerage:USD", "Robinhood")
                     .replace("Assets:Checking:", "")
                     .replace("Assets:Saving:", "")
                     .replace("-", "")
