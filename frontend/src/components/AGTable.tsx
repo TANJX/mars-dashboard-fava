@@ -304,8 +304,8 @@ function AGTable({ dashboardData }: { dashboardData: DashboardData }) {
             }).length;
 
             // If both have >5 activities OR both have <=5 activities, compare by balance
-            const aHasHighActivity = aActivities > 5;
-            const bHasHighActivity = bActivities > 5;
+            const aHasHighActivity = aActivities >= 1;
+            const bHasHighActivity = bActivities >= 1;
             const aIsRobinhood = a.includes("Robinhood");
             const bIsRobinhood = b.includes("Robinhood");
 
@@ -342,6 +342,12 @@ function AGTable({ dashboardData }: { dashboardData: DashboardData }) {
             const hasData = dashboardData.rows.some((row) => {
                 const accountData = row[account] as AccountData;
                 return accountData.transaction || (accountData.balance && parseFloat(accountData.balance) !== 0);
+            });
+
+            // Check if account has any activity (transactions) in the period
+            const hasActivity = dashboardData.rows.some((row) => {
+                const accountData = row[account] as AccountData;
+                return accountData.transaction && accountData.transaction.trim() !== "";
             });
 
             // Only add columns if the account has data
@@ -381,7 +387,7 @@ function AGTable({ dashboardData }: { dashboardData: DashboardData }) {
                         field: `${account}.transaction`,
                         editable: true,
                         headerClass: `header-bank-${accountClass}`,
-                        width: 150,
+                        width: hasActivity ? 150 : 50,
                         valueFormatter: (params: ValueFormatterParams<DashboardRow>) => formulaFormatter(params.value),
                         cellStyle: (params: CellClassParams<DashboardRow>) => ({
                             textAlign: "right",
@@ -424,7 +430,7 @@ function AGTable({ dashboardData }: { dashboardData: DashboardData }) {
                         field: `${account}.description`,
                         editable: true,
                         headerClass: `header-bank-${accountClass}`,
-                        width: 150,
+                        width: hasActivity ? 150 : 50,
                         cellStyle: (params: CellClassParams<DashboardRow, string>) => ({
                             textAlign: "left",
                             color: isUserEdited(params.data?.date, account, "description")
