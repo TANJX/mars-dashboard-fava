@@ -204,7 +204,7 @@ if (url.includes("americanexpress")) {
   account = "robinhood";
 } else if (url.includes("future")) {
   account = "future";
-} else if (url.includes("td.com")) {
+} else if (url.includes("td.com") || url.includes("tdbank.com")) {
   account = "td";
 }
 

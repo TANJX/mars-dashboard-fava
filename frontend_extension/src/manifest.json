@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Credit Card Balance Viewer",
-  "version": "1.0",
+  "version": "1.0.1",
   "description": "Shows credit card balances on banking websites",
   "permissions": [
     "activeTab",
@@ -16,7 +16,8 @@
     "*://*.discover.com/*",
     "*://*.robinhood.com/*",
     "*://*.future.green/*",
-    "*://*.td.com/*"
+    "*://*.td.com/*",
+    "*://*.tdbank.com/*"
   ],
   "content_scripts": [
     {
@@ -28,7 +29,8 @@
         "*://*.discover.com/*",
         "*://*.robinhood.com/*",
         "*://*.future.green/*",
-        "*://*.td.com/*"
+        "*://*.td.com/*",
+        "*://*.tdbank.com/*"
       ],
       "js": ["content.js"]
     }
