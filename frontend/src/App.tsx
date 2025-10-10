@@ -63,6 +63,17 @@ function App() {
       }
       console.log(data.rows);
 
+      // calculate the total balance for each row
+      for (const row of data.rows) {
+        let totalBalance = 0;
+        for (const accountKey in row) {
+          if (accountKey !== 'date' && accountKey !== 'total') {
+            totalBalance += parseValue(row[accountKey].balance);
+          }
+        }
+        row.total = { balance: totalBalance.toFixed(2) };
+      }
+
       setMarsDashboardData(data);
       console.log('Updated dashboard data');
     } catch (err) {

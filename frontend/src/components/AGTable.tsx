@@ -59,7 +59,17 @@ function AGTable({ dashboardData }: { dashboardData: DashboardData }) {
             // Update previous values for next iteration
             prevBalance = parseValue(accountData.balance);
             prevTransaction = parseValue(accountData.transaction || "0");
+            // calculate the total balance as rowData[index]["total"].balance
+            let totalBalance = 0;
+            for (const accountKey in newRowData[i]) {
+                if (accountKey !== 'date' && accountKey !== 'total') {
+                    const accountData = newRowData[i][accountKey] as AccountData;
+                    totalBalance += parseValue(accountData.balance);
+                }
+            }
+            newRowData[i]["total"] = { balance: totalBalance.toFixed(2) };
         }
+        console.log("newRowData", newRowData);
         return newRowData;
     };
 
@@ -287,6 +297,26 @@ function AGTable({ dashboardData }: { dashboardData: DashboardData }) {
                         fontStyle: isPast || isWeekend ? "italic" : "normal",
                     };
                 },
+            },
+            {
+                field: "total.balance",
+                headerName: "Total",
+                headerClass: "bg-black text-white",
+                width: 90,
+                valueFormatter: (params: ValueFormatterParams<DashboardRow>) => currencyFormatter(params.value),
+                cellStyle: (params: CellClassParams<DashboardRow>) => {
+                    if (params.value > 0) {
+                        return {
+                            textAlign: "right",
+                            color: "green",
+                        };
+                    }
+                    return {
+                        textAlign: "right",
+                        color: "red",
+                    };
+                },
+                pinned: "left" as const,
             },
         ];
 
