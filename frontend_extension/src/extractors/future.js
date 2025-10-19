@@ -19,30 +19,29 @@ function toTitleCase(str) {
 }
 
 export function extractFuture() {
-
   let transactions = document.querySelectorAll(
-    'main  > .w-full > .flex.flex-col.justify-start.border'
+    'main  > .w-full .flex-1.min-w-0'
   );
 
   let result = [];
   Array.from(transactions).reverse().forEach((transaction) => {
     // Extract the description
     const descriptionElement = transaction.querySelector(
-      'div.flex.justify-between.items-center > div:first-child'
+      'div.flex.justify-between.items-center > .flex.flex-col > div:first-child'
     );
     const descriptionRaw = descriptionElement ? descriptionElement.innerText.trim() : 'Unknown';
     let description = toTitleCase(descriptionRaw);
 
     // Extract the amount
     const amountElement = transaction.querySelector(
-      'div.flex.justify-between.items-center > div:last-child'
+      'div.flex.justify-between.items-center > .flex.flex-col:last-child'
     );
     const amountText = amountElement ? amountElement.innerText.trim() : '$0.00';
     const amount = parseFloat(amountText.replace('$', ''));
 
     // Extract the date
     const dateElement = transaction.querySelector(
-      'div.flex.justify-between.items-center.w-full:nth-child(2) > div'
+      'div.flex.justify-between.items-center > .flex.flex-col > div:last-child'
     );
     const rawDate = dateElement ? dateElement.innerText.trim() : 'Unknown Date';
     if (rawDate === 'Unknown Date' || rawDate === 'Pending' || rawDate === 'Declined') {
